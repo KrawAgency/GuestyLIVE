@@ -1,0 +1,29 @@
+{
+  "name": "GuestyLIVE",
+  "short_name": "GuestyLIVE",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F3F6F6",
+  "theme_color": "#0E7C74",
+  "lang": "es-MX",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "description": "Ficha rápida de huéspedes para UVC"
+}
