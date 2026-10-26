@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>GuestyLIVE v1.10</title>
+<title>GuestyLIVE v1.11</title>
 <meta name="theme-color" content="#F3F6F6" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0C1312" media="(prefers-color-scheme: dark)">
 <meta name="mobile-web-app-capable" content="yes">
@@ -152,6 +152,7 @@ main.col{padding-block:6px 48px;display:grid;grid-template-columns:minmax(0,1fr)
 .chip.ok{background:var(--ok-soft);color:var(--ok)}
 .chip.own{background:var(--own-soft);color:var(--own)}
 .chip.acc{background:var(--accent-soft);color:var(--accent)}
+.chip.uvc{background:var(--own);color:var(--bg);letter-spacing:.06em;font-weight:800}
 
 .empty{background:var(--surface);border-radius:18px;padding:26px 18px;text-align:center;color:var(--muted);box-shadow:var(--shadow)}
 .empty b{display:block;color:var(--ink);font-size:16px;margin-bottom:4px}
@@ -392,7 +393,7 @@ main.col{padding-block:6px 48px;display:grid;grid-template-columns:minmax(0,1fr)
 
 <script>
 /* ============ CONFIGURACIÓN (edítala aquí) ============ */
-const APP_VERSION = '1.10';   // súbela en cada cambio
+const APP_VERSION = '1.11';   // súbela en cada cambio
 const CFG = {
   QPRE: { NQ:['No califica','stop'], NC:['No contactado','warn'], CO:['Contactado','acc'], Q:['Calificado','ok'], CT:['CT','own'] },
   QOUT: { NS:['No show','stop'], Q:['Calificó','ok'], QA:['Calificó A','ok'], QB:['Calificó B','ok'], CT:['CT','own'], CTG:['CTG','own'], NQ:['No calificó','stop'] },
@@ -416,6 +417,10 @@ const CFG = {
     [/YA INV/,            'Ya invitado', 'own'],
     [/\bREF\b/,           'Referido', 'own'],
   ],
+  // Reglas por AGENCY: aplican aunque el comentario del CRM no lo diga
+  AGENCY_UVC: /\bUVC\b/,                                  // etiqueta morada "UVC"
+  AGENCY_CR: [/VOYAGE\s*PRIVE/, /\bTUI\s*(UK|UNITED\s*KINGDOM)\b/, /SCHAU?I?NSLAND/, /BRITISH\s*AIRWAYS/, /\bDER\s*TOUR/],
+  AGENCY_MICE: /\bMICE\b/,                                // NQ por GRP · No contactar
   // Compañeros: si aparecen en el comentario, el caso tiene dueño
   STAFF: ['CHRISTOPHER','IVAN','JC','PACO','XAVI','FER','KEVIN','NEFTA','NEF','SANTI','SANTIAGO','ERI'],
   COUNTRY: { US:'EE. UU.', MX:'México', CA:'Canadá' },
@@ -496,7 +501,7 @@ function blEntry(r){
   return e;
 }
 function blTidy(id){ const e = BL.items[id]; if (e && !Object.keys(e.changes).length) delete BL.items[id] }
-const eff  = (r,k) => { const c = BL.items[r.id]?.changes?.[k]; return c ? c.to : r[k] };
+const eff  = (r,k) => { const c = BL.items[r.id]?.changes?.[k]; return c ? c.to : k === 'qpre' ? qBase(r) : r[k] };
 const mine = (r,k) => !!BL.items[r.id]?.changes?.[k];
 function setField(r, k, val){
   const e = blEntry(r);
@@ -630,9 +635,21 @@ function index(){
 }
 
 /* ---------- Interpretación ---------- */
+const isUVC  = r => CFG.AGENCY_UVC.test(norm(r.agency));
+const isMICE = r => CFG.AGENCY_MICE.test(norm(r.agency));
+const isCRAgency = r => { const a = norm(r.agency); return CFG.AGENCY_CR.some(re => re.test(a)) };
+// Q.PRE base: MICE sin trabajar (vacío o NC) se lee como NQ; si el CRM ya dice CO/Q/CT se respeta
+const qBase = r => isMICE(r) && (!r.qpre || r.qpre === 'NC') ? 'NQ' : r.qpre;
+const UVC_CHIP = '<span class="chip uvc">UVC</span>';
 function tagsOf(r){
   const c = norm(r.cmt), out = [];
   for (const [re, label, kind] of CFG.TAGS) if (re.test(c)) out.push([label, kind]);
+  const has = p => out.some(t => t[0].startsWith(p));
+  if (isCRAgency(r) && !has('CR')) out.unshift(['CR · País de residencia no califica (por agencia)', 'stop']);
+  if (isMICE(r)){
+    if (!has('No contactar')) out.unshift(['No contactar (agencia MICE)', 'stop']);
+    if (!has('GRP')) out.push(['GRP · Grupo (agencia MICE)', 'info']);
+  }
   const owners = new Set();
   const op = c.match(/\bOPEN\s+([A-Z]+)/); if (op) owners.add(op[1]);
   for (const s of CFG.STAFF) if (new RegExp('\\b'+s+'\\b').test(c)) owners.add(s);
@@ -697,6 +714,7 @@ function highlight(name, q){
 /* ---------- Lista ---------- */
 function cardHTML(r, q){
   const s = stay(r), tg = tagsOf(r), qcode = eff(r,'qpre'), qp = CFG.QPRE[qcode], chips = [];
+  if (isUVC(r)) chips.push(UVC_CHIP);
   if (s.label) chips.push(`<span class="chip ${s.kind}">${esc(s.label)}</span>`);
   if (qcode) chips.push(`<span class="chip ${qp ? qp[1] : ''}">${esc(qcode)}</span>`);
   if (r.memb) chips.push(`<span class="chip own">★ ${esc(level(r.memb) || 'Socio')}</span>`);
@@ -717,7 +735,7 @@ const FILTERS = {
   arr: ['Llegan hoy', r => r.in === dayKey()],
   dep: ['Salen hoy', r => r.out === dayKey()],
   memb:['Socios UVC', r => !!r.memb],
-  nc:  ['No contactados', r => r.qpre === 'NC'],
+  nc:  ['No contactados', r => qBase(r) === 'NC'],
 };
 function tilesHTML(){
   return Object.entries(FILTERS).map(([k,[l,fn]]) =>
@@ -778,6 +796,7 @@ function sheetHTML(r){
   const pax = [r.ad && `${r.ad} adulto${r.ad==='1'?'':'s'}`, r.ch && r.ch!=='0' && `${r.ch} niño${r.ch==='1'?'':'s'}`].filter(Boolean).join(' · ');
   const sub = [pax, country(r)].filter(Boolean).join(' · ');
   const stayChips = [];
+  if (isUVC(r)) stayChips.push(UVC_CHIP);
   if (s.label) stayChips.push(`<span class="chip ${s.kind}">${esc(s.label)}</span>`);
   if (s.total) stayChips.push(`<span class="chip">Noche ${Math.max(1,Math.min(s.n,s.total))} de ${s.total}</span>`);
   if (r.out && r.out !== dayKey()) stayChips.push(`<span class="chip">Sale ${fmtDay(r.out)}</span>`);
@@ -800,7 +819,7 @@ function sheetHTML(r){
 
   const kv = [
     ['Estancia', r.in ? `${fmtDay(r.in)} → ${fmtDay(r.out)}` : '—'],
-    ['Agencia', esc(title(r.agency) || '—')],
+    ['Agencia', `${isUVC(r) ? UVC_CHIP + ' ' : ''}${esc(title(r.agency) || '—')}`],
     ['Mercado', esc(title(r.market) || '—')],
   ];
   if (r.group) kv.push(['Grupo', `${esc(title(r.group))} <small>· ${grpN} hab.</small>`]);
@@ -845,7 +864,7 @@ function statusHTML(r){
   return `<h3>Estatus UVC</h3>
     <div class="qrow">
       <span class="qbadge ${qp?qp[1]:''}">${esc(q || '—')}</span>
-      <div><b>${esc(qp ? qp[0] : (q ? 'Código '+q : 'Sin precalificación'))}</b>${qm ? `<small class="was">Cambiado por ti · en CRM: ${esc(r.qpre || '—')}</small>` : '<small>Precalificación</small>'}</div>
+      <div><b>${esc(qp ? qp[0] : (q ? 'Código '+q : 'Sin precalificación'))}</b>${qm ? `<small class="was">Cambiado por ti · en CRM: ${esc(r.qpre || '—')}</small>` : q !== r.qpre ? `<small class="was">NQ por agencia MICE · en CRM: ${esc(r.qpre || '—')}</small>` : '<small>Precalificación</small>'}</div>
     </div>
     <div class="qpick"><span>Cambiar a</span>${Object.keys(CFG.QPRE).map(c => `<button type="button" data-q="${c}" aria-pressed="${q===c}" class="${qm && q===c ? 'mine' : ''}">${c}</button>`).join('')}</div>
     <div class="flags">${flags}</div>
@@ -1099,6 +1118,7 @@ function paintCalls(){
       <div class="meta"><span>${Q.length} por llamar${callArr ? ' · llegó ' + (callArr === dayKey() ? 'hoy' : esc(fmtShort(callArr))) : ''}</span></div>
       <ul class="results">${Q.slice(0, 300).map(r => {
         const s = stay(r), cs = r._cs, chips = [];
+        if (isUVC(r)) chips.push(UVC_CHIP);
         if (cs.st === 'later') chips.push(`<span class="chip own">Volver a llamar</span>`);
         if (cs.n) chips.push(`<span class="chip warn">${cs.n} intento${cs.n===1?'':'s'} · ${hhmm(cs.last.at)}</span>`);
         if (s.label) chips.push(`<span class="chip ${s.kind}">${esc(s.label)}</span>`);
@@ -1155,6 +1175,7 @@ function callSheetHTML(r){
   const pax = [r.ad && `${r.ad} adulto${r.ad==='1'?'':'s'}`, r.ch && r.ch!=='0' && `${r.ch} niño${r.ch==='1'?'':'s'}`].filter(Boolean).join(' · ');
   const sub = [pax, country(r), s.label].filter(Boolean).join(' · ');
   const chips = [];
+  if (isUVC(r)) chips.push(UVC_CHIP);
   if (q) chips.push(`<span class="chip ${qp?qp[1]:''}">${esc(q)}${qp ? ' · '+esc(qp[0]) : ''}</span>`);
   if (r.memb) chips.push(`<span class="chip own">★ ${esc(level(r.memb) || 'Socio')}</span>`);
   for (const [l,k] of tg) if (k !== 'info') chips.push(`<span class="chip ${k}">${esc(l)}</span>`);
