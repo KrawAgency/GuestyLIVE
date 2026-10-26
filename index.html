@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>GuestyLIVE v1.12</title>
+<title>GuestyLIVE v1.13</title>
 <meta name="theme-color" content="#F3F6F6" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0C1312" media="(prefers-color-scheme: dark)">
 <meta name="mobile-web-app-capable" content="yes">
@@ -132,6 +132,10 @@ main.col{padding-block:6px 48px;display:grid;grid-template-columns:minmax(0,1fr)
 
 .meta{font-size:13px;color:var(--muted);font-weight:500;display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:20px}
 .meta button{border:0;background:none;color:var(--accent);font-weight:700;font-size:13px;padding:4px 0}
+.metaact{display:flex;align-items:center;gap:12px;flex:none}
+.sortseg{display:inline-flex;background:var(--sunk);border-radius:999px;padding:2px}
+.meta .sortseg button{padding:5px 11px;border-radius:999px;color:var(--muted)}
+.meta .sortseg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
 
 /* Resultados */
 .results{list-style:none;margin:0;padding:0;display:grid;gap:10px}
@@ -393,7 +397,7 @@ main.col{padding-block:6px 48px;display:grid;grid-template-columns:minmax(0,1fr)
 
 <script>
 /* ============ CONFIGURACIÓN (edítala aquí) ============ */
-const APP_VERSION = '1.12';   // súbela en cada cambio
+const APP_VERSION = '1.13';   // súbela en cada cambio
 const CFG = {
   QPRE: { NQ:['No califica','stop'], NC:['No contactado','warn'], CO:['Contactado','acc'], Q:['Calificado','ok'], CT:['CT','own'] },
   QOUT: { NS:['No show','stop'], Q:['Calificó','ok'], QA:['Calificó A','ok'], QB:['Calificó B','ok'], CT:['CT','own'], CTG:['CTG','own'], NQ:['No calificó','stop'] },
@@ -445,6 +449,10 @@ const store = {
 };
 
 let DATA = null, DEMO = false, filter = null, arrDate = null, sheetId = null, lastAuto = '';
+const SORT_KEY = 'guestylive_orden_lista';
+let listSort = store.get(SORT_KEY) === 'az' ? 'az' : 'room';   // orden de las listas filtradas: 'room' | 'az'
+const byRoom = (a,b) => a.room.localeCompare(b.room,'es',{numeric:true});
+const byName = (a,b) => a.name.localeCompare(b.name,'es') || byRoom(a,b);
 
 /* ---------- Pendientes (backlog para pasar al CRM) ---------- */
 const BL_KEY = 'huespedes_pendientes';
@@ -757,7 +765,7 @@ function render(){
   const dbox = $('#dates');
   if (list === null && filter){
     label = FILTERS[filter][0];
-    list = rows().filter(FILTERS[filter][1]).sort((a,b) => a.room.localeCompare(b.room,'es',{numeric:true}));
+    list = rows().filter(FILTERS[filter][1]).sort(listSort === 'az' ? byName : byRoom);
     if (filter !== 'arr'){
       const cnt = new Map(); for (const r of list) if (r.in) cnt.set(r.in, (cnt.get(r.in)||0) + 1);
       const days = [...cnt.keys()].sort().reverse();   // más reciente primero
@@ -777,7 +785,7 @@ function render(){
   if (list === null){ ul.innerHTML = ''; meta.innerHTML = ''; return }
   const LIM = (!nq && filter) ? 500 : 40, shown = list.slice(0, LIM);
   meta.innerHTML = list.length
-    ? `<span>${label ? esc(label)+' · ' : ''}${list.length} resultado${list.length===1?'':'s'}${list.length>LIM?' · mostrando '+LIM:''}</span>${label ? '<button type="button" data-unfilter>Quitar filtro</button>' : ''}`
+    ? `<span>${label ? esc(label)+' · ' : ''}${list.length} resultado${list.length===1?'':'s'}${list.length>LIM?' · mostrando '+LIM:''}</span>${label ? `<span class="metaact"><span class="sortseg" role="group" aria-label="Ordenar"><button type="button" data-sort="room" aria-pressed="${listSort==='room'}">Hab.</button><button type="button" data-sort="az" aria-pressed="${listSort==='az'}">A–Z</button></span><button type="button" data-unfilter>Quitar filtro</button></span>` : ''}`
     : '';
   ul.innerHTML = shown.length ? shown.map(r => cardHTML(r, q)).join('')
     : `<li class="empty"><b>Nadie con “${esc(q.trim())}”</b>Revisa el número o prueba con otro apellido.</li>`;
@@ -958,7 +966,10 @@ $('#q').addEventListener('keydown', e => {
 });
 $('#clear').addEventListener('click', () => { setQ(''); lastAuto = ''; render(); $('#q').focus() });
 $('#results').addEventListener('click', e => { const c = e.target.closest('.card'); if (c) openSheet(c.dataset.id) });
-$('#meta').addEventListener('click', e => { if (e.target.closest('[data-unfilter]')){ filter = null; arrDate = null; render() } });
+$('#meta').addEventListener('click', e => {
+  if (e.target.closest('[data-unfilter]')){ filter = null; arrDate = null; render(); return }
+  const s = e.target.closest('[data-sort]'); if (s && s.dataset.sort !== listSort){ listSort = s.dataset.sort; store.set(SORT_KEY, listSort); render() }
+});
 $('#dates').addEventListener('click', e => { const b = e.target.closest('.dchip'); if (!b) return; arrDate = b.dataset.d || null; render() });
 $('#tiles').addEventListener('click', e => { const b = e.target.closest('.tile'); if (!b) return; filter = filter === b.dataset.f ? null : b.dataset.f; arrDate = null; render() });
 $('#welcome').addEventListener('click', e => { const b = e.target.closest('[data-try]'); if (b){ setQ(b.dataset.try); lastAuto = ''; render() } });
