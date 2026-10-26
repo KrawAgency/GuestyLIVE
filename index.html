@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>GuestyLIVE v1.11</title>
+<title>GuestyLIVE v1.12</title>
 <meta name="theme-color" content="#F3F6F6" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0C1312" media="(prefers-color-scheme: dark)">
 <meta name="mobile-web-app-capable" content="yes">
@@ -393,7 +393,7 @@ main.col{padding-block:6px 48px;display:grid;grid-template-columns:minmax(0,1fr)
 
 <script>
 /* ============ CONFIGURACIÓN (edítala aquí) ============ */
-const APP_VERSION = '1.11';   // súbela en cada cambio
+const APP_VERSION = '1.12';   // súbela en cada cambio
 const CFG = {
   QPRE: { NQ:['No califica','stop'], NC:['No contactado','warn'], CO:['Contactado','acc'], Q:['Calificado','ok'], CT:['CT','own'] },
   QOUT: { NS:['No show','stop'], Q:['Calificó','ok'], QA:['Calificó A','ok'], QB:['Calificó B','ok'], CT:['CT','own'], CTG:['CTG','own'], NQ:['No calificó','stop'] },
@@ -976,7 +976,15 @@ $('#sheetBody').addEventListener('click', async e => {
   if (t.dataset.callopen){ showSheet('__call:' + t.dataset.callopen); return }
   if (t.classList.contains('lnk')){ const r = (BYROOM.get(t.dataset.room)||[])[0]; if (r) openSheet(r.id); return }
   const r = BYID.get(sheetId);
-  if (t.dataset.flag && r){ const k = t.dataset.flag; setField(r, k, !eff(r,k)); $('#stbox').innerHTML = statusHTML(r); render(); return }
+  if (t.dataset.flag && r){
+    const k = t.dataset.flag, on = !eff(r,k); setField(r, k, on);
+    // RC (cupón) implica que ya lo contactaste: NC → CO. Si quitas el RC, se deshace solo si el cambio fue automático.
+    if (k === 'RC'){
+      const qc = () => BL.items[r.id]?.changes?.qpre;
+      if (on && eff(r,'qpre') === 'NC'){ setField(r, 'qpre', 'CO'); if (qc()){ qc().auto = 'RC'; blSave() } toast('Q.PRE: NC → CO por el cupón') }
+      else if (!on && qc()?.auto === 'RC'){ setField(r, 'qpre', r.qpre); toast('Q.PRE regresó a NC') }
+    }
+    $('#stbox').innerHTML = statusHTML(r); render(); return }
   if (t.dataset.q && r){ const c = t.dataset.q; setField(r, 'qpre', (mine(r,'qpre') && eff(r,'qpre') === c) ? r.qpre : c); $('#stbox').innerHTML = statusHTML(r); render(); return }
   if (t.hasAttribute('data-savenote') && r){ setNote(r, $('#note').value); $('#notebox').innerHTML = noteHTML(r); toast($('#note').value.trim() ? 'Nota guardada en Pendientes' : 'Nota quitada'); render(); return }
   if (t.dataset.done){ const it = BL.items[t.dataset.done]; if (it){ it.done = !it.done; blSave(); paintSheet(); render() } return }
