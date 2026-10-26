@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>GuestyLIVE v1.9</title>
+<title>GuestyLIVE v1.10</title>
 <meta name="theme-color" content="#F3F6F6" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0C1312" media="(prefers-color-scheme: dark)">
 <meta name="mobile-web-app-capable" content="yes">
@@ -392,7 +392,7 @@ main.col{padding-block:6px 48px;display:grid;grid-template-columns:minmax(0,1fr)
 
 <script>
 /* ============ CONFIGURACIÓN (edítala aquí) ============ */
-const APP_VERSION = '1.9';   // súbela en cada cambio
+const APP_VERSION = '1.10';   // súbela en cada cambio
 const CFG = {
   QPRE: { NQ:['No califica','stop'], NC:['No contactado','warn'], CO:['Contactado','acc'], Q:['Calificado','ok'], CT:['CT','own'] },
   QOUT: { NS:['No show','stop'], Q:['Calificó','ok'], QA:['Calificó A','ok'], QB:['Calificó B','ok'], CT:['CT','own'], CTG:['CTG','own'], NQ:['No calificó','stop'] },
@@ -1012,7 +1012,7 @@ function toast(msg){ const t = $('#toast'); t.textContent = msg; t.hidden = fals
 const CALL_KEY = 'guestylive_llamadas', QF_KEY = 'guestylive_filtros_llamadas';
 const ANS = { si:'Contestaron', no:'No contestó', ocu:'Ocupado / buzón' };
 const RES = { WBD:['WBD','ok'], COLG:['Colgaron','stop'], NOINT:['No interés','stop'], INFO:['Ya tenía info','warn'], LATER:['Llamar después','own'] };
-let CALLS = [], callView = 'queue';
+let CALLS = [], callView = 'queue', callArr = null;
 let QF = {nc:true, co:false, hideStop:true, hideOwn:true, hideDep:false};
 function callsLoad(){
   let raw = null; try{ raw = JSON.parse(store.get(CALL_KEY) || 'null') }catch(e){}
@@ -1084,10 +1084,19 @@ function paintCalls(){
     </div>`;
   let body = '';
   if (callView === 'queue'){
-    const Q = queue();
+    const Q0 = queue();
+    const cnt = new Map(); for (const r of Q0) if (r.in) cnt.set(r.in, (cnt.get(r.in)||0) + 1);
+    const days = [...cnt.keys()].sort().reverse();   // más reciente primero
+    if (callArr && !cnt.has(callArr)) callArr = null;
+    const Q = callArr ? Q0.filter(r => r.in === callArr) : Q0;
+    const dates = (days.length > 1 || callArr) ? `<div class="dates"><div class="lbl">Llegada</div><div class="daterow">
+        <button class="dchip" type="button" data-cd="" aria-pressed="${!callArr}"><small>Todas</small>${Q0.length}<small>huésp.</small></button>
+        ${days.map(d => `<button class="dchip" type="button" data-cd="${d}" aria-pressed="${callArr===d}"><small>${d === dayKey() ? 'hoy' : esc(fmtWd(d))}</small>${esc(fmtShort(d))}<small>${cnt.get(d)} huésp.</small></button>`).join('')}
+      </div></div>` : '';
     const chip = (k, l) => `<button class="fchip" type="button" data-qf="${k}" aria-pressed="${!!QF[k]}">${l}</button>`;
     body = `<div class="chiprow">${chip('nc','NC')}${chip('co','CO')}${chip('hideStop','Ocultar rojos')}${chip('hideOwn','Ocultar con dueño')}${chip('hideDep','Ocultar salen hoy')}</div>
-      <div class="meta"><span>${Q.length} por llamar</span></div>
+      ${dates}
+      <div class="meta"><span>${Q.length} por llamar${callArr ? ' · llegó ' + (callArr === dayKey() ? 'hoy' : esc(fmtShort(callArr))) : ''}</span></div>
       <ul class="results">${Q.slice(0, 300).map(r => {
         const s = stay(r), cs = r._cs, chips = [];
         if (cs.st === 'later') chips.push(`<span class="chip own">Volver a llamar</span>`);
@@ -1132,6 +1141,7 @@ $('#mainC').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   if (b.dataset.cv){ callView = b.dataset.cv; paintCalls(); return }
   if (b.dataset.qf){ QF[b.dataset.qf] = !QF[b.dataset.qf]; store.set(QF_KEY, JSON.stringify(QF)); paintCalls(); return }
+  if (b.hasAttribute('data-cd')){ callArr = b.dataset.cd || null; paintCalls(); return }
   if (b.dataset.call){ showSheet('__call:' + b.dataset.call); return }
   if (b.dataset.delcall){
     const id = b.dataset.delcall;
