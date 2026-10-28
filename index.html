@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>GuestyLIVE v1.13</title>
+<title>GuestyLIVE v1.14</title>
 <meta name="theme-color" content="#F3F6F6" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0C1312" media="(prefers-color-scheme: dark)">
 <meta name="mobile-web-app-capable" content="yes">
@@ -144,6 +144,10 @@ main.col{padding-block:6px 48px;display:grid;grid-template-columns:minmax(0,1fr)
 .tag{width:72px;display:grid;justify-items:center;padding:7px 0 8px;border-radius:13px;background:var(--sunk);position:relative}
 .tag::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--bg);box-shadow:inset 0 1px 1px rgba(0,0,0,.08);margin-bottom:4px}
 .tag b{font-family:var(--f-display);font-weight:800;font-size:25px;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.tag.fs{padding:6px 0 7px;gap:2px}
+.tag.fs::before{display:none}
+.tag.fs small{font-size:10px;font-weight:800;letter-spacing:.06em;color:var(--accent);line-height:1;margin-bottom:1px}
+.tag.fs b{font-size:18px}
 .who{display:grid;gap:6px;min-width:0}
 .name{font-weight:700;font-size:16.5px;line-height:1.25;overflow-wrap:anywhere}
 .name mark{background:var(--accent-soft);color:var(--ink);border-radius:4px;padding:0 1px}
@@ -181,6 +185,8 @@ main.col{padding-block:6px 48px;display:grid;grid-template-columns:minmax(0,1fr)
 .shead .tag{width:86px;background:var(--accent);color:var(--accent-ink);padding:9px 0 10px}
 .shead .tag::before{background:var(--accent-soft);box-shadow:none}
 .shead .tag b{font-size:31px}
+.shead .tag.fs b{font-size:23px}
+.shead .tag.fs small{color:var(--accent-ink);opacity:.85}
 .shead h2{margin:0;font-family:var(--f-display);font-weight:700;font-size:22px;line-height:1.15;letter-spacing:-.01em;overflow-wrap:anywhere;text-wrap:balance}
 .shead p{margin:3px 0 0;color:var(--muted);font-size:14px}
 .stayline{display:flex;flex-wrap:wrap;gap:6px}
@@ -397,7 +403,7 @@ main.col{padding-block:6px 48px;display:grid;grid-template-columns:minmax(0,1fr)
 
 <script>
 /* ============ CONFIGURACIÓN (edítala aquí) ============ */
-const APP_VERSION = '1.13';   // súbela en cada cambio
+const APP_VERSION = '1.14';   // súbela en cada cambio
 const CFG = {
   QPRE: { NQ:['No califica','stop'], NC:['No contactado','warn'], CO:['Contactado','acc'], Q:['Calificado','ok'], CT:['CT','own'] },
   QOUT: { NS:['No show','stop'], Q:['Calificó','ok'], QA:['Calificó A','ok'], QB:['Calificó B','ok'], CT:['CT','own'], CTG:['CTG','own'], NQ:['No calificó','stop'] },
@@ -432,6 +438,14 @@ const CFG = {
   CALLS_KEEP_DAYS: 14,       // después de estos días, el registro se queda sin nombres (solo para métricas)
 };
 /* ====================================================== */
+// Family suites: el CRM trae un código (8xxx/99xx); cada uno son dos cuartos físicos.
+// Copiado de fernandouvc/buscador_family_suites.html — si cambia allá, pega aquí el nuevo DATA.
+const FS = {"8004":{"r1":"2326","r2":"2324","cat":"DXTV"},"8026":{"r1":"2327","r2":"2325","cat":"DXTV"},"9905":{"r1":"2204","r2":"2206","cat":"PCOJ"},"9919":{"r1":"1406","r2":"1404","cat":"PCOJ"},"9933":{"r1":"2504","r2":"2506","cat":"PCOJ"},"9955":{"r1":"1341","r2":"1343","cat":"DXTV"},"9976":{"r1":"1216","r2":"1214","cat":"DXTV"},"9998":{"r1":"2241","r2":"2243","cat":"DXTV"},"8009":{"r1":"2317","r2":"2315","cat":"DXTV"},"8027":{"r1":"2227","r2":"2225","cat":"DXTV"},"9906":{"r1":"1206","r2":"1204","cat":"PCOJ"},"9920":{"r1":"1506","r2":"1504","cat":"PCOJ"},"9934":{"r1":"2511","r2":"2509","cat":"PCOJ"},"9959":{"r1":"1226","r2":"1224","cat":"DXTV"},"9982":{"r1":"1327","r2":"1325","cat":"DXTV"},"9999":{"r1":"2341","r2":"2343","cat":"DXTV"},"8010":{"r1":"2217","r2":"2215","cat":"DXTV"},"8028":{"r1":"2544","r2":"2546","cat":"DXTV"},"9908":{"r1":"1212","r2":"1210","cat":"PCOJ"},"9922":{"r1":"2212","r2":"2210","cat":"PCOJ"},"9935":{"r1":"2411","r2":"2409","cat":"PCOJ"},"9960":{"r1":"1326","r2":"1324","cat":"DXTV"},"9983":{"r1":"1227","r2":"1225","cat":"DXTV"},"8011":{"r1":"2539","r2":"2540","cat":"DXTV"},"8029":{"r1":"2444","r2":"2446","cat":"DXTV"},"9909":{"r1":"1310","r2":"1312","cat":"PCOJ"},"9923":{"r1":"2312","r2":"2310","cat":"PCOJ"},"9936":{"r1":"2311","r2":"2309","cat":"PCOJ"},"9965":{"r1":"1317","r2":"1315","cat":"DXTV"},"9984":{"r1":"1544","r2":"1546","cat":"DXTV"},"8012":{"r1":"2439","r2":"2440","cat":"DXTV"},"8030":{"r1":"2344","r2":"2346","cat":"DXTV"},"9910":{"r1":"1412","r2":"1410","cat":"PCOJ"},"9924":{"r1":"2412","r2":"2410","cat":"PCOJ"},"9939":{"r1":"1511","r2":"1509","cat":"PCOJ"},"9966":{"r1":"1217","r2":"1215","cat":"DXTV"},"9985":{"r1":"1444","r2":"1446","cat":"DXTV"},"8013":{"r1":"2339","r2":"2340","cat":"DXTV"},"9900":{"r1":"1245","r2":"1247","cat":"DXTV"},"9911":{"r1":"1512","r2":"1510","cat":"PCOJ"},"9925":{"r1":"2512","r2":"2510","cat":"PCOJ"},"9940":{"r1":"1411","r2":"1409","cat":"PCOJ"},"9967":{"r1":"1539","r2":"1540","cat":"DXTV"},"9986":{"r1":"1344","r2":"1346","cat":"DXTV"},"8014":{"r1":"2239","r2":"2240","cat":"DXTV"},"9901":{"r1":"1246","r2":"1244","cat":"DXTV"},"9912":{"r1":"1505","r2":"1503","cat":"PCOJ"},"9926":{"r1":"2505","r2":"2503","cat":"PCOJ"},"9941":{"r1":"1311","r2":"1309","cat":"PCOJ"},"9968":{"r1":"1439","r2":"1440","cat":"DXTV"},"9990":{"r1":"2329","r2":"2328","cat":"DXTV"},"8016":{"r1":"2345","r2":"2347","cat":"DXTV"},"9902":{"r1":"2247","r2":"2245","cat":"DXTV"},"9913":{"r1":"1405","r2":"1403","cat":"PCOJ"},"9927":{"r1":"2405","r2":"2403","cat":"PCOJ"},"9946":{"r1":"1329","r2":"1328","cat":"DXTV"},"9969":{"r1":"1339","r2":"1440","cat":"DXTV"},"9991":{"r1":"2229","r2":"2228","cat":"DXTV"},"8020":{"r1":"2216","r2":"2214","cat":"DXTV"},"9903":{"r1":"2246","r2":"2244","cat":"DXTV"},"9914":{"r1":"1305","r2":"1303","cat":"PCOJ"},"9928":{"r1":"2305","r2":"2303","cat":"PCOJ"},"9947":{"r1":"1229","r2":"1228","cat":"DXTV"},"9970":{"r1":"1239","r2":"1240","cat":"DXTV"},"9995":{"r1":"2332","r2":"2331","cat":"DXTV"},"8021":{"r1":"2316","r2":"2314","cat":"DXTV"},"9904":{"r1":"2306","r2":"2304","cat":"PCOJ"},"9918":{"r1":"1306","r2":"1304","cat":"PCOJ"},"9932":{"r1":"2406","r2":"2404","cat":"PCOJ"},"9954":{"r1":"1241","r2":"1243","cat":"DXTV"},"9972":{"r1":"1345","r2":"1347","cat":"DXTV"},"9996":{"r1":"2232","r2":"2231","cat":"DXTV"}};
+const FS_REV = {}; for (const c in FS){ for (const n of [FS[c].r1, FS[c].r2]) if (n) (FS_REV[n] = FS_REV[n] || []).push(c) }
+const physOf = r => { const f = FS[r.room]; return f ? [f.r1, f.r2].filter(Boolean) : [] };
+const tagHTML = room => { const f = FS[room]; return f
+  ? `<span class="tag fs"><small>FS ${esc(room)}</small><b>${esc(f.r1)}</b><b>${esc(f.r2)}</b></span>`
+  : `<span class="tag"><b>${esc(room)}</b></span>` };
 
 // ⚠ No cambiar estas llaves entre versiones: así cada versión nueva lee lo que guardó la anterior.
 const KEY = 'huespedes_v1', KBD_KEY = 'huespedes_kbd';
@@ -684,7 +698,12 @@ function country(r){
 const level = m => { const p = m.split('-'); return p.length > 2 && p.slice(2).join('-').trim() ? title(p.slice(2).join('-')) : '' };
 function linked(r){
   const L = new Map();
-  for (const n of (r.cmt.match(/\b\d{4}\b/g) || [])) if (n !== r.room && BYROOM.has(n)) L.set(n, 'Viene con');
+  const own = physOf(r);
+  for (const n of (r.cmt.match(/\b\d{4}\b/g) || [])){
+    if (n === r.room || own.includes(n)) continue;
+    if (BYROOM.has(n)) L.set(n, 'Viene con');
+    else for (const c of FS_REV[n] || []) if (c !== r.room && BYROOM.has(c)) L.set(c, 'Viene con');
+  }
   if (r.memb) for (const o of BYMEMB.get(membKey(r.memb)) || []) if (o.room !== r.room && !L.has(o.room)) L.set(o.room, 'Mismo socio');
   return L;
 }
@@ -693,8 +712,9 @@ function linked(r){
 function search(qraw){
   const q = norm(qraw); if (!q) return null;
   if (/^\d+$/.test(q)){
-    return rows().filter(r => r.room.startsWith(q))
-      .sort((a,b) => (b.room===q) - (a.room===q) || a.room.localeCompare(b.room, 'es', {numeric:true}));
+    const exact = r => r.room === q || physOf(r).includes(q);
+    return rows().filter(r => r.room.startsWith(q) || physOf(r).some(n => n.startsWith(q)))
+      .sort((a,b) => exact(b) - exact(a) || a.room.localeCompare(b.room, 'es', {numeric:true}));
   }
   const words = q.split(/\s+/).filter(Boolean), res = [];
   for (const r of rows()){
@@ -732,7 +752,7 @@ function cardHTML(r, q){
   if (BL.items[r.id] && !BL.items[r.id].done) chips.unshift(`<span class="chip own">✎ Pendiente</span>`);
   { const p = callsFor(r.id); if (p.length){ const l = p[p.length-1]; chips.unshift(`<span class="chip ${callKind(l)}">☎ ${esc(callLabel(l))}</span>`) } }
   return `<li><button class="card" type="button" data-id="${esc(r.id)}">
-    <span class="tag"><b>${esc(r.room)}</b></span>
+    ${tagHTML(r.room)}
     <span class="who"><span class="name">${highlight(r.name, q)}</span><span class="sub">${chips.join('')}</span></span>
     ${IC.go}
   </button></li>`;
@@ -792,7 +812,7 @@ function render(){
 
   // Habitación exacta y única → abre la ficha directo
   if (/^\d{4,}$/.test(nq) && nq !== lastAuto){
-    const ex = list.filter(r => r.room === nq);
+    const ex = list.filter(r => r.room === nq || physOf(r).includes(nq));
     if (ex.length === 1){ lastAuto = nq; openSheet(ex[0].id); $('#q').blur() }
   }
   if (!/^\d{4,}$/.test(nq)) lastAuto = '';
@@ -832,11 +852,12 @@ function sheetHTML(r){
   ];
   if (r.group) kv.push(['Grupo', `${esc(title(r.group))} <small>· ${grpN} hab.</small>`]);
   if (r.memb) kv.push(['Socio UVC', `${esc(level(r.memb) || 'Sin nivel')} <small>· ${esc(r.memb.replace(/-+$/,''))}</small>`]);
+  if (FS[r.room]){ const f = FS[r.room]; kv.unshift(['Family suite', `<b>${esc(f.r1)}</b> + <b>${esc(f.r2)}</b> <small>· código ${esc(r.room)} · ${esc(f.cat)}</small>`]) }
   kv.push(['Folio', `${esc(r.resv || '—')}${resvType ? ` <small>· ${resvType}</small>` : ''}`]);
 
   return `
     <div class="shead">
-      <span class="tag"><b>${esc(r.room)}</b></span>
+      ${tagHTML(r.room)}
       <div><h2>${esc(title(r.name))}</h2>${sub ? `<p>${esc(sub)}</p>` : ''}</div>
     </div>
     ${stayChips.length ? `<div class="stayline">${stayChips.join('')}</div>` : ''}
@@ -1143,7 +1164,7 @@ function paintCalls(){
         if (s.label) chips.push(`<span class="chip ${s.kind}">${esc(s.label)}</span>`);
         const q = eff(r,'qpre'); if (q) chips.push(`<span class="chip ${CFG.QPRE[q] ? CFG.QPRE[q][1] : ''}">${esc(q)}</span>`);
         if (r.memb) chips.push(`<span class="chip own">★ ${esc(level(r.memb) || 'Socio')}</span>`);
-        return `<li><button class="card" type="button" data-call="${esc(r.id)}"><span class="tag"><b>${esc(r.room)}</b></span><span class="who"><span class="name">${esc(title(r.name))}</span><span class="sub">${chips.join('')}</span></span><span class="ph">${PH}</span></button></li>`;
+        return `<li><button class="card" type="button" data-call="${esc(r.id)}">${tagHTML(r.room)}<span class="who"><span class="name">${esc(title(r.name))}</span><span class="sub">${chips.join('')}</span></span><span class="ph">${PH}</span></button></li>`;
       }).join('') || `<li class="empty"><b>Nadie por llamar con estos filtros</b>${DEMO ? 'Carga el CRM de hoy para armar tu lista.' : 'Prueba prender CO o apagar algún filtro.'}</li>`}</ul>`;
   } else if (callView === 'log'){
     const L = [...T].reverse();
@@ -1199,7 +1220,7 @@ function callSheetHTML(r){
   if (r.memb) chips.push(`<span class="chip own">★ ${esc(level(r.memb) || 'Socio')}</span>`);
   for (const [l,k] of tg) if (k !== 'info') chips.push(`<span class="chip ${k}">${esc(l)}</span>`);
   return `
-    <div class="shead"><span class="tag"><b>${esc(r.room)}</b></span><div><h2>${esc(title(r.name))}</h2>${sub ? `<p>${esc(sub)}</p>` : ''}</div></div>
+    <div class="shead">${tagHTML(r.room)}<div><h2>${esc(title(r.name))}</h2>${sub ? `<p>${esc(sub)}</p>` : ''}</div></div>
     ${chips.length ? `<div class="stayline">${chips.join('')}</div>` : ''}
     ${r.cmt ? `<div class="bubble">${esc(r.cmt)}</div>` : ''}
     ${prev.length ? `<section class="box"><h3>Hoy ya le marcaste</h3><div class="prevcalls">${prev.map(c => `<span class="chip ${callKind(c)}">${hhmm(c.at)} · ${esc(callLabel(c))}</span>`).join('')}</div></section>` : ''}
