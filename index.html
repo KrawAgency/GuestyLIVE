@@ -1,10 +1,10 @@
 <!doctype html>
-<!-- GuestyLIVE · v1.19 -->
+<!-- GuestyLIVE · v1.20 -->
 <html lang="es-MX">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>GuestyLIVE v1.19</title>
+<title>GuestyLIVE v1.20</title>
 <meta name="theme-color" content="#F3F6F6" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0C1312" media="(prefers-color-scheme: dark)">
 <meta name="mobile-web-app-capable" content="yes">
@@ -433,7 +433,7 @@ main.col{padding-block:6px 48px;display:grid;grid-template-columns:minmax(0,1fr)
 
 <script>
 /* ============ CONFIGURACIÓN (edítala aquí) ============ */
-const APP_VERSION = '1.19';   // súbela en cada cambio
+const APP_VERSION = '1.20';   // súbela en cada cambio
 const CFG = {
   QPRE: { NQ:['No califica','stop'], NC:['No contactado','warn'], CO:['Contactado','acc'], Q:['Calificado','ok'], CT:['CT','own'] },
   QOUT: { NS:['No show','stop'], Q:['Calificó','ok'], QA:['Calificó A','ok'], QB:['Calificó B','ok'], CT:['CT','own'], CTG:['CTG','own'], NQ:['No calificó','stop'] },
@@ -907,8 +907,8 @@ function sheetHTML(r){
     ${stayChips.length ? `<div class="stayline">${stayChips.join('')}</div>` : ''}
     <div class="noterow"><small>${(() => { const p = callsFor(r.id); return p.length ? `Llamadas hoy: ${p.map(c => hhmm(c.at) + ' ' + esc(callLabel(c))).join(' · ')}` : 'Sin llamadas hoy' })()}</small><button class="btn sm" type="button" data-callopen="${esc(r.id)}">${PH.replace('<svg','<svg width="18" height="18"')}Registrar llamada</button></div>
 
-    <section class="box" id="abbox">${abHTML(r)}</section>
     <section class="box" id="stbox">${statusHTML(r)}</section>
+    <section class="box" id="abbox">${abHTML(r)}</section>
     ${tour.length ? `<section class="box"><h3>Tour</h3><dl class="kv">${tour.map(([k,v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl></section>` : ''}
 
     <section class="box" id="notebox">${noteHTML(r)}</section>
@@ -1414,7 +1414,7 @@ function abHTML(r){
   if (!x) return `<h3>Abordaje</h3>
     <div class="sublbl">¿Cómo llegó a ti? (puedes juntar varios)</div>${orig}
     <button class="btn" type="button" data-ab>Registrar abordaje</button>
-    <div class="hint">Si marcas INF, RC, INV o NQ abajo, también cuenta como abordaje.</div>`;
+    <div class="hint">Si marcas INF, RC, INV o NQ arriba, también cuenta como abordaje.</div>`;
   const st = [['Abordado', true], x.steps.NQ ? ['No califica', 'stop'] : ['Califica', true], ['Interesado', recInter(x)], ['Firma', recFirma(x)], ['Asistió', recAsis(x)], ['Venta', recVenta(x)]];
   let inv = '';
   if (recOtro(x)) inv = `<div class="caution">El CRM dice INV, pero tú no lo marcaste: no cuenta en tus firmas.</div>
