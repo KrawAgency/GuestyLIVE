@@ -1,10 +1,10 @@
 <!doctype html>
-<!-- GuestyLIVE · v1.9 -->
+<!-- GuestyLIVE · v1.17 -->
 <html lang="es-MX">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>GuestyLIVE v1.16</title>
+<title>GuestyLIVE v1.17</title>
 <meta name="theme-color" content="#F3F6F6" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0C1312" media="(prefers-color-scheme: dark)">
 <meta name="mobile-web-app-capable" content="yes">
@@ -323,6 +323,32 @@ main.col{padding-block:6px 48px;display:grid;grid-template-columns:minmax(0,1fr)
 .htable td small{color:var(--muted)}
 .prevcalls{display:flex;flex-wrap:wrap;gap:6px}
 
+/* Turno */
+.chiprow.wrap{flex-wrap:wrap;overflow:visible}
+.sublbl{font-size:12.5px;color:var(--muted);font-weight:600;margin-bottom:-6px}
+.shiftrow{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.shiftrow .st{display:grid;gap:1px}
+.shiftrow .st b{font-size:17px}
+.shiftrow .st small{color:var(--muted);font-size:12.5px}
+.shiftrow .on{color:var(--ok)}
+.cstat em{font-style:normal;font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.funl{display:grid}
+.fr{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:12px;align-items:baseline;padding:9px 0;border-top:1px solid var(--line)}
+.fr:first-child{border-top:0;padding-top:2px}
+.fr span{font-weight:600}
+.fr b{font-family:var(--f-display);font-size:21px;font-weight:800;font-variant-numeric:tabular-nums;text-align:right}
+.fr small{grid-column:1/-1;color:var(--muted);font-size:12.5px;font-variant-numeric:tabular-nums}
+.fr.sub span{padding-left:14px;font-weight:500;color:var(--muted)}
+.fr.sub b{font-size:17px;color:var(--muted)}
+.fr.key b{color:var(--ok)}
+.bars{display:grid;gap:10px}
+.barl{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;font-size:14px;font-weight:600}
+.barl b{font-variant-numeric:tabular-nums}
+.barl i{grid-column:1/-1;height:6px;border-radius:3px;background:var(--stop-soft);overflow:hidden;display:block}
+.barl i::before{content:"";display:block;height:100%;width:var(--w);background:var(--stop);border-radius:3px}
+.caution{font-size:12.5px;color:var(--warn);background:var(--warn-soft);border-radius:12px;padding:8px 11px;font-weight:600}
+@media (max-width:440px){ .tabs button svg{display:none} .tabs button{font-size:14px} }
+
 .toast{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:14px;font-weight:600;font-size:14px;width:max-content;max-width:calc(100% - 32px);z-index:40;box-shadow:var(--shadow-lg)}
 @media (prefers-reduced-motion: reduce){ .sheet,.scrim,.card,.search{transition:none} }
 </style>
@@ -345,6 +371,7 @@ main.col{padding-block:6px 48px;display:grid;grid-template-columns:minmax(0,1fr)
     <button type="button" role="tab" data-tab="g" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="6.5" stroke="currentColor" stroke-width="2.2"/><path d="M20 20l-4-4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>Huéspedes</button>
     <button type="button" role="tab" data-tab="l" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="3.5" width="16" height="17" rx="2.5" stroke="currentColor" stroke-width="2"/><path d="M8 8h8M8 12h8M8 16h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Lista<span class="dot" id="listaDot" hidden></span></button>
     <button type="button" role="tab" data-tab="c" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6.5 3.5h3l1.5 4.5-2.2 1.4a11 11 0 005.3 5.3l1.4-2.2 4.5 1.5v3a2 2 0 01-2 2A16 16 0 014.5 5.5a2 2 0 012-2z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>Llamadas</button>
+    <button type="button" role="tab" data-tab="t" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>Turno</button>
   </div>
 </div>
 
@@ -390,6 +417,8 @@ main.col{padding-block:6px 48px;display:grid;grid-template-columns:minmax(0,1fr)
 
 <main class="col lista" id="mainL" hidden></main>
 <main class="col lista" id="mainC" hidden></main>
+<main class="col lista" id="mainT" hidden></main>
+<input type="file" id="fileRep" accept=".xlsx,.xls,.csv" multiple hidden>
 <input type="file" id="fileImg" accept="image/*" multiple hidden>
 
 <div id="scrim" class="scrim" hidden></div>
@@ -404,7 +433,7 @@ main.col{padding-block:6px 48px;display:grid;grid-template-columns:minmax(0,1fr)
 
 <script>
 /* ============ CONFIGURACIÓN (edítala aquí) ============ */
-const APP_VERSION = '1.16';   // súbela en cada cambio
+const APP_VERSION = '1.17';   // súbela en cada cambio
 const CFG = {
   QPRE: { NQ:['No califica','stop'], NC:['No contactado','warn'], CO:['Contactado','acc'], Q:['Calificado','ok'], CT:['CT','own'] },
   QOUT: { NS:['No show','stop'], Q:['Calificó','ok'], QA:['Calificó A','ok'], QB:['Calificó B','ok'], CT:['CT','own'], CTG:['CTG','own'], NQ:['No calificó','stop'] },
@@ -437,6 +466,10 @@ const CFG = {
   COUNTRY: { US:'EE. UU.', MX:'México', CA:'Canadá' },
   ME: 'Fer',                 // tu firma en la nota del CRM: "WBD 25 Fer"
   CALLS_KEEP_DAYS: 14,       // después de estos días, el registro se queda sin nombres (solo para métricas)
+  // Turno: cómo llegó el huésped a ti (se pueden juntar varios, ej. Llamada WBD + Carta)
+  ORIGINS: [['CHK','Check-in'],['WBD','Llamada WBD'],['CARTA','Carta'],['FRIO','Frío']],
+  // Motivos de no calificación (el primero que aplique se sugiere solo según el comentario del CRM)
+  NQ_WHY: [['SOCIO','Socio'],['TA','Travel agent'],['EDAD','Edad'],['TARJ','Tarjeta'],['CR','País'],['LB','Idioma'],['HBH','Sin pareja'],['SGLM','Hombre solo'],['GRP','Grupo'],['OTRO','Otro']],
 };
 /* ====================================================== */
 // Family suites: el CRM trae un código (8xxx/99xx); cada uno son dos cuartos físicos.
@@ -498,7 +531,7 @@ function blMerge(incoming){
   return added;
 }
 function backupDownload(){
-  const payload = {app:'guestylive', version:APP_VERSION, schema:SCHEMA, at:Date.now(), pendientes:BL, llamadas:CALLS, crm: (DATA && !DEMO && DATA.day === dayKey()) ? DATA : null};
+  const payload = {app:'guestylive', version:APP_VERSION, schema:SCHEMA, at:Date.now(), pendientes:BL, llamadas:CALLS, actividad:ACT, crm: (DATA && !DEMO && DATA.day === dayKey()) ? DATA : null};
   const blob = new Blob([JSON.stringify(payload)], {type:'application/json'});
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `respaldo-guestylive-${dayKey()}.json`;
   document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove() }, 1000);
@@ -509,6 +542,7 @@ async function backupLoad(file){
     const p = JSON.parse(await file.text());
     let n = blMerge(blNormalize(p.pendientes || p)); blSave();
     if (Array.isArray(p.llamadas)){ const have = new Set(CALLS.map(c => c.id)); for (const c of p.llamadas) if (c && c.id && !have.has(c.id)){ CALLS.push(c); n++ } CALLS.sort((a,b) => a.at - b.at); callsSave(); callsPrune(); paintCalls() }
+    if (p.actividad){ n += actMerge(actNormalize(p.actividad)); actSave(); paintTurno() }
     let msg = n ? `Respaldo cargado: ${n} cambio${n===1?'':'s'} recuperado${n===1?'':'s'}` : 'Ese respaldo no traía nada nuevo';
     if (p.crm && p.crm.day === dayKey() && Array.isArray(p.crm.rows) && (DEMO || !DATA)){
       DATA = p.crm; DEMO = false; store.set(KEY, JSON.stringify(DATA)); index(); msg += ' · también el CRM de hoy';
@@ -530,6 +564,7 @@ function setField(r, k, val){
   const e = blEntry(r);
   if (val === r[k]) delete e.changes[k]; else e.changes[k] = {from:r[k], to:val, at:Date.now()};
   e.done = false; blTidy(r.id); blSave();
+  actTrack(r, k);
 }
 function setNote(r, text){
   text = String(text||'').trim(); const e = blEntry(r);
@@ -636,6 +671,8 @@ async function readFiles(fileList, append){
   base.rows = [...map.values()]; base.at = Date.now(); base.day = dayKey();
   DATA = base; DEMO = false; filter = null; closeSheet(true);
   for (const [id,it] of Object.entries(BL.items)) if (it.demo) delete BL.items[id]; blSave();
+  for (const [h,x] of Object.entries(ACT.recs)) if (x.demo) delete ACT.recs[h];
+  actReconcile(base.rows); actSnapshot(); actSave();
   if (!store.set(KEY, JSON.stringify(DATA))) toast('Cargado, pero este navegador no deja guardarlo: si se cierra tendrás que volver a cargar.');
   else toast(`Listo: ${base.rows.length} huéspedes cargados`);
   index(); setQ(''); render(); paintCalls();
@@ -755,6 +792,7 @@ function cardHTML(r, q){
   for (const t of tg.filter(t => t[1]==='stop')) chips.push(`<span class="chip stop">${esc(t[0].split(' · ')[0])}</span>`);
   const own = tg.find(t => t[1]==='own'); if (own) chips.push(`<span class="chip own">${esc(own[0])}</span>`);
   if (BL.items[r.id] && !BL.items[r.id].done) chips.unshift(`<span class="chip own">✎ Pendiente</span>`);
+  { const x = recOf(r); if (x) chips.unshift(`<span class="chip acc">✓ Abordado${x.day === dayKey() ? '' : ' ' + esc(fmtShort(x.day))}</span>`) }
   { const p = callsFor(r.id); if (p.length){ const l = p[p.length-1]; chips.unshift(`<span class="chip ${callKind(l)}">☎ ${esc(callLabel(l))}</span>`) } }
   return `<li><button class="card" type="button" data-id="${esc(r.id)}">
     ${tagHTML(r.room)}
@@ -776,6 +814,7 @@ function tilesHTML(){
 }
 
 function render(){
+  if (tab === 't') paintTurno();
   const q = $('#q').value, nq = norm(q);
   $('#clear').hidden = !q;
   $('#welcome').hidden = !DEMO;
@@ -868,6 +907,7 @@ function sheetHTML(r){
     ${stayChips.length ? `<div class="stayline">${stayChips.join('')}</div>` : ''}
     <div class="noterow"><small>${(() => { const p = callsFor(r.id); return p.length ? `Llamadas hoy: ${p.map(c => hhmm(c.at) + ' ' + esc(callLabel(c))).join(' · ')}` : 'Sin llamadas hoy' })()}</small><button class="btn sm" type="button" data-callopen="${esc(r.id)}">${PH.replace('<svg','<svg width="18" height="18"')}Registrar llamada</button></div>
 
+    <section class="box" id="abbox">${abHTML(r)}</section>
     <section class="box" id="stbox">${statusHTML(r)}</section>
     ${tour.length ? `<section class="box"><h3>Tour</h3><dl class="kv">${tour.map(([k,v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl></section>` : ''}
 
@@ -916,7 +956,7 @@ function backlogHTML(){
   const open = all.filter(e => !e.done).length, done = all.length - open;
   const head = `<div class="blhead"><h2>Pendientes para el CRM</h2><p>${open} por pasar${done ? ` · ${done} ya pasado${done===1?'':'s'}` : ''}</p></div>`;
   const backup = `<section class="box"><h3>Respaldo</h3>
-      <p class="hint">Guarda tus pendientes y tu registro de llamadas en un archivo para pasarlos a otra versión de la app o a otro aparato.</p>
+      <p class="hint">Guarda tus pendientes, tu registro de llamadas y tu registro de turno en un archivo para pasarlos a otra versión de la app o a otro aparato.</p>
       <div class="blactions"><button class="btn soft sm" type="button" data-bksave>Guardar respaldo</button><label class="btn soft sm" for="fileBk">Cargar respaldo</label></div>
     </section>`;
   if (!all.length) return head + `<div class="empty"><b>No hay pendientes</b>Cuando marques algo o dejes una nota en una ficha, aparece aquí para pasarlo al CRM al final del turno.</div>` + backup;
@@ -1021,8 +1061,20 @@ $('#sheetBody').addEventListener('click', async e => {
       if (on && eff(r,'qpre') === 'NC'){ setField(r, 'qpre', 'CO'); if (qc()){ qc().auto = 'RC'; blSave() } toast('Q.PRE: NC → CO por el cupón') }
       else if (!on && qc()?.auto === 'RC'){ setField(r, 'qpre', r.qpre); toast('Q.PRE regresó a NC') }
     }
-    $('#stbox').innerHTML = statusHTML(r); render(); return }
-  if (t.dataset.q && r){ const c = t.dataset.q; setField(r, 'qpre', (mine(r,'qpre') && eff(r,'qpre') === c) ? r.qpre : c); $('#stbox').innerHTML = statusHTML(r); render(); return }
+    $('#stbox').innerHTML = statusHTML(r); paintAb(r); render(); return }
+  if (t.dataset.q && r){ const c = t.dataset.q; setField(r, 'qpre', (mine(r,'qpre') && eff(r,'qpre') === c) ? r.qpre : c); $('#stbox').innerHTML = statusHTML(r); paintAb(r);
+    const x = recOf(r); if (c === 'NQ' && x && x.steps.NQ && !x.steps.NQ.why) toast('Elige arriba por qué no califica');
+    render(); return }
+  if (t.dataset.orig && r){
+    const k = t.dataset.orig, x = recOf(r), cur = x ? x.orig : (abDraft[r.id] || suggestOrig(r));
+    const nx = cur.includes(k) ? cur.filter(o => o !== k) : [...cur, k];
+    if (x){ x.orig = nx; actSave() } else abDraft[r.id] = nx;
+    paintAb(r); return }
+  if (t.hasAttribute('data-ab') && r){ recEnsure(r, false); actSave(); paintAb(r); render(); toast('Abordaje registrado ' + hhmm(Date.now())); return }
+  if (t.dataset.why && r){ const x = recOf(r); if (x && x.steps.NQ){ x.steps.NQ.why = x.steps.NQ.why === t.dataset.why ? '' : t.dataset.why; actSave(); paintAb(r) } return }
+  if (t.hasAttribute('data-abdel') && r){
+    if (Date.now() - abDelArm > 3000){ abDelArm = Date.now(); t.textContent = 'Toca otra vez para quitar'; return }
+    abDelArm = 0; const x = recOf(r); if (x) delete ACT.recs[x.h]; actSave(); paintAb(r); render(); toast('Abordaje quitado (tus marcas en Pendientes siguen)'); return }
   if (t.hasAttribute('data-savenote') && r){ setNote(r, $('#note').value); $('#notebox').innerHTML = noteHTML(r); toast($('#note').value.trim() ? 'Nota guardada en Pendientes' : 'Nota quitada'); render(); return }
   if (t.dataset.done){ const it = BL.items[t.dataset.done]; if (it){ it.done = !it.done; blSave(); paintSheet(); render() } return }
   if (t.dataset.open){ showSheet(t.dataset.open); return }
@@ -1064,6 +1116,7 @@ $('#wipe').addEventListener('click', () => {
   store.del(KEY); listaClear(); loadDemo(); toast('Datos borrados de este teléfono');
 });
 document.addEventListener('visibilitychange', () => {
+  if (!document.hidden){ actPrune(); if (tab === 't') paintTurno() }
   if (!document.hidden && LISTA && LISTA.day !== dayKey()) listaClear();
   if (!document.hidden && DATA && !DEMO && DATA.day !== dayKey()){ store.del(KEY); loadDemo(); toast('Cambió el día: borré los datos de ayer') }
 });
@@ -1246,6 +1299,315 @@ function callSheetHTML(r){
     <button class="btn soft sm" type="button" data-ficha="${esc(r.id)}">Ver ficha completa</button>`;
 }
 
+/* ---------- Turno y desempeño ---------- */
+// ⚠ No cambiar estas llaves entre versiones
+const ACT_KEY = 'guestylive_actividad', ACTV_KEY = 'guestylive_vista_turno';
+// recs: un registro por huésped que abordaste (llave = huella de folio + nombre, sin guardar el nombre en la llave)
+// shifts: tus turnos · snaps: por día, huellas de los prospectos disponibles (NC elegibles) al cargar el CRM
+let ACT = {v:1, recs:{}, shifts:[], snaps:{}};
+let actView = 'day', actSel = null, abDraft = {}, abDelArm = 0;
+const hashKey = s => { s = norm(s); let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return (h >>> 0).toString(36) };
+const guestKey = r => hashKey((r.resv || r.room) + '|' + r.name);
+const addDays = (iso, n) => { const d = isoDate(iso); d.setDate(d.getDate() + n); return dayKey(d) };
+const weekStart = iso => { const d = isoDate(iso); d.setDate(d.getDate() - (d.getDay() + 6) % 7); return dayKey(d) };
+const origName = k => (CFG.ORIGINS.find(o => o[0] === k) || [k, k])[1];
+const whyName = k => (CFG.NQ_WHY.find(o => o[0] === k) || [k, k === 'SIN' ? 'Sin motivo' : k])[1];
+const origSort = a => [...a].sort((x,y) => CFG.ORIGINS.findIndex(o => o[0]===x) - CFG.ORIGINS.findIndex(o => o[0]===y));
+const durTxt = ms => { const m = Math.round(ms / 6e4); return m < 60 ? `${m} min` : `${Math.floor(m/60)} h ${pad(m%60)}` };
+const rate = (a, b) => b ? Math.round(a * 100 / b) + '%' : '—';
+
+function actNormalize(raw){
+  const out = {v:1, recs:{}, shifts:[], snaps:{}};
+  if (!raw || typeof raw !== 'object') return out;
+  for (const [h, x] of Object.entries(raw.recs || {})){
+    if (!x || !x.day || !x.at) continue;
+    out.recs[h] = {h, day:String(x.day), at:Number(x.at), orig:Array.isArray(x.orig) ? x.orig.filter(o => typeof o === 'string') : [],
+      steps: x.steps && typeof x.steps === 'object' ? x.steps : {}, out: x.out && typeof x.out === 'object' ? x.out : {},
+      auto:!!x.auto, anon:!!x.anon, demo:!!x.demo, room:x.room, name:x.name, gid:x.gid};
+  }
+  out.shifts = (Array.isArray(raw.shifts) ? raw.shifts : []).filter(s => s && s.id && s.start).map(s => ({id:String(s.id), start:Number(s.start), end: s.end ? Number(s.end) : null}));
+  for (const [d, s] of Object.entries(raw.snaps || {})) if (s && Array.isArray(s.ids)) out.snaps[d] = {ids:s.ids.map(String), at:Number(s.at) || 0};
+  return out;
+}
+function actLoad(){
+  let raw = null; try{ raw = JSON.parse(store.get(ACT_KEY) || 'null') }catch(e){}
+  ACT = actNormalize(raw);
+  const v = store.get(ACTV_KEY); if (v === 'day' || v === 'week') actView = v;
+  actPrune();
+}
+function actSave(){ if (!store.set(ACT_KEY, JSON.stringify(ACT))) toast('Ojo: este navegador no deja guardar tu registro de turno.') }
+function lastActivityOn(day){
+  let t = 0;
+  for (const x of Object.values(ACT.recs)){
+    if (x.day === day) t = Math.max(t, x.at);
+    for (const v of Object.values(x.steps)) if (v && v.at && dayKey(new Date(v.at)) === day) t = Math.max(t, v.at);
+  }
+  for (const c of CALLS) if (c.day === day) t = Math.max(t, c.at);
+  return t;
+}
+function actPrune(){
+  const lim = Date.now() - CFG.CALLS_KEEP_DAYS * 864e5; let ch = false;
+  for (const x of Object.values(ACT.recs)) if (x.at < lim && !x.anon){ delete x.room; delete x.name; delete x.gid; x.anon = true; ch = true }
+  // Turno que se quedó abierto otro día: se cierra con tu última actividad de ese día
+  for (const s of ACT.shifts) if (!s.end && dayKey(new Date(s.start)) !== dayKey()){ s.end = Math.max(s.start, lastActivityOn(dayKey(new Date(s.start)))); ch = true }
+  const keys = Object.keys(ACT.snaps).sort(); while (keys.length > 120){ delete ACT.snaps[keys.shift()]; ch = true }
+  if (ch) actSave();
+}
+
+/* Turno */
+const shiftsOn = day => ACT.shifts.filter(s => dayKey(new Date(s.start)) === day);
+const shiftOpen = () => shiftsOn(dayKey()).find(s => !s.end);
+function shiftStart(){ if (shiftOpen()) return; ACT.shifts.push({id: Date.now().toString(36), start: Date.now(), end: null}); actSave() }
+function shiftEnd(){ const s = shiftOpen(); if (!s) return; s.end = Date.now(); actSave() }
+
+/* Registro por huésped */
+const recOf = r => ACT.recs[guestKey(r)];
+const suggestOrig = r => CALLS.some(c => c.gid === r.id && c.res === 'WBD') ? ['WBD'] : [];
+function suggestWhy(r){
+  const c = norm(r.cmt);
+  if (/\bCR\b/.test(c) || isCRAgency(r)) return 'CR';
+  if (/\bLB\b/.test(c)) return 'LB';
+  if (/\bUA\b/.test(c)) return 'EDAD';
+  if (/\bHBH\b/.test(c)) return 'HBH';
+  if (/\bSGLM\b/.test(c)) return 'SGLM';
+  if (isMICE(r) || /\bGRP(NC)?\b/.test(c)) return 'GRP';
+  if (r.memb) return 'SOCIO';
+  return '';
+}
+function recEnsure(r, auto){
+  const h = guestKey(r); let x = ACT.recs[h];
+  if (!x){
+    x = ACT.recs[h] = {h, day:dayKey(), at:Date.now(), orig: abDraft[r.id] || suggestOrig(r), steps:{}, out:{}, auto:!!auto, anon:false, demo:DEMO};
+    delete abDraft[r.id];
+    if (!shiftsOn(dayKey()).length) shiftStart();   // primer abordaje del día = empieza tu turno
+  }
+  if (!auto) x.auto = false;
+  Object.assign(x, {room:r.room, name:r.name, gid:r.id, anon:false});
+  return x;
+}
+// Se llama cada vez que cambias Q.PRE o un indicador en la ficha
+function actTrack(r, k){
+  if (!['qpre','INF','RC','INV','SH'].includes(k)) return;
+  const x0 = recOf(r);
+  if (k === 'qpre'){
+    if (mine(r,'qpre') && eff(r,'qpre') === 'NQ'){ const x = recEnsure(r, true); if (!x.steps.NQ) x.steps.NQ = {at:Date.now(), why:suggestWhy(r)} }
+    else if (x0) delete x0.steps.NQ;
+  } else {
+    if (mine(r,k) && eff(r,k)){ const x = recEnsure(r, true); if (!x.steps[k]) x.steps[k] = {at:Date.now()} }
+    else if (x0) delete x0.steps[k];
+  }
+  const x = recOf(r); if (x && x.auto && !Object.keys(x.steps).length) delete ACT.recs[x.h];
+  actSave();
+}
+const recFirma = x => !!(x.steps.INV || x.out.INV);
+const recAsis = x => !!(x.steps.SH || x.out.SH || (x.out.qout && x.out.qout !== 'NS'));
+const recVenta = x => !!x.out.contract;
+const recInter = x => !!(x.steps.INF || x.steps.RC || recFirma(x));
+
+function abHTML(r){
+  const x = recOf(r), sel = x ? x.orig : (abDraft[r.id] || suggestOrig(r));
+  const orig = `<div class="chiprow wrap">${CFG.ORIGINS.map(([k,l]) => `<button type="button" class="fchip" data-orig="${k}" aria-pressed="${sel.includes(k)}">${esc(l)}</button>`).join('')}</div>`;
+  if (!x) return `<h3>Abordaje</h3>
+    <div class="sublbl">¿Cómo llegó a ti? (puedes juntar varios)</div>${orig}
+    <button class="btn" type="button" data-ab>Registrar abordaje</button>
+    <div class="hint">Si marcas INF, RC, INV o NQ abajo, también cuenta como abordaje.</div>`;
+  const st = [['Abordado', true], x.steps.NQ ? ['No califica', 'stop'] : ['Califica', true], ['Interesado', recInter(x)], ['Firma', recFirma(x)], ['Asistió', recAsis(x)], ['Venta', recVenta(x)]];
+  const why = x.steps.NQ ? `<div class="sublbl">¿Por qué no califica?</div><div class="chiprow wrap">${CFG.NQ_WHY.map(([k,l]) => `<button type="button" class="fchip" data-why="${k}" aria-pressed="${x.steps.NQ.why===k}">${esc(l)}</button>`).join('')}</div>` : '';
+  return `<h3>Abordaje</h3>
+    <div class="prevcalls">${st.map(([l,v]) => `<span class="chip ${v === 'stop' ? 'stop' : v ? 'ok' : ''}">${v && v !== 'stop' ? '✓ ' : ''}${l}</span>`).join('')}</div>
+    ${why}
+    <div class="sublbl">¿Cómo llegó a ti?</div>${orig}
+    <div class="noterow"><small>Abordado ${x.day === dayKey() ? 'hoy' : esc(fmtDay(x.day))} ${hhmm(x.at)}${x.auto ? ' · contó al marcar' : ''}</small><button class="btn danger sm" type="button" data-abdel>Quitar abordaje</button></div>`;
+}
+function paintAb(r){ const b = $('#abbox'); if (b) b.innerHTML = abHTML(r) }
+
+/* Prospectos disponibles del día (se guarda al cargar el CRM: solo huellas, sin nombres) */
+function availableToday(r){
+  const today = dayKey();
+  if (!r.in || r.in > today || (r.out && r.out < today)) return false;
+  const q = qBase(r); if (q && q !== 'NC') return false;
+  const me = ' ' + title(CFG.ME);
+  return !tagsOf(r).some(([l,k]) => k === 'stop' || (k === 'own' && !l.endsWith(me)));
+}
+function actSnapshot(){
+  if (DEMO || !DATA) return;
+  const d = dayKey(), ids = new Set(ACT.snaps[d] ? ACT.snaps[d].ids : []);
+  for (const r of rows()) if (availableToday(r)) ids.add(guestKey(r));
+  ACT.snaps[d] = {ids:[...ids], at:Date.now()};
+}
+/* Cruce: busca en un export o reporte del CRM a los huéspedes que abordaste y lee INV, SH, Q.OUT y CONTRACT */
+const contractOK = v => { const s = norm(v); return !!s && !/^(0|NO|N\/A|NA|-+|FALSE)$/.test(s) };
+function actReconcile(list){
+  const by = new Map(); for (const r of list) by.set(guestKey(r), r);
+  let n = 0;
+  for (const x of Object.values(ACT.recs)){
+    const r = by.get(x.h); if (!r) continue;
+    const o = x.out, before = JSON.stringify(o);
+    if (r.INV) o.INV = true;
+    if (r.SH) o.SH = true;
+    if (r.qout) o.qout = r.qout;
+    if (contractOK(r.contract)) o.contract = String(r.contract).trim();
+    if (JSON.stringify(o) !== before){ o.at = Date.now(); n++ }
+  }
+  return n;
+}
+async function reportLoad(fileList){
+  if (typeof XLSX === 'undefined'){ toast('No se pudo cargar el lector de Excel. Revisa tu conexión.'); return }
+  let all = [];
+  try{
+    for (const f of fileList){
+      const wb = XLSX.read(await f.arrayBuffer(), {type:'array', cellDates:true});
+      all = all.concat(parseSheet(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header:1, defval:'', raw:true})));
+    }
+  }catch(e){ toast(e.message || 'No pude leer el reporte.'); return }
+  const n = actReconcile(all); actSave(); paintTurno();
+  toast(n ? `Crucé ${all.length} filas: ${n} de tus abordados se actualizaron` : `Revisé ${all.length} filas: nada nuevo de tus abordados`);
+}
+
+/* Cálculos de un periodo (de/a: YYYY-MM-DD). Todo se cuenta por el día en que abordaste al huésped. */
+function actStats(from, to){
+  const inR = d => d >= from && d <= to;
+  const recs = Object.values(ACT.recs).filter(x => inR(x.day));
+  const disp = new Set(); let snapDays = 0;
+  for (const [d, s] of Object.entries(ACT.snaps)) if (inR(d)){ snapDays++; s.ids.forEach(i => disp.add(i)) }
+  recs.forEach(x => disp.add(x.h));   // el que abordaste también estaba disponible
+  const nq = recs.filter(x => x.steps.NQ), why = new Map(), org = new Map();
+  for (const x of nq){ const w = x.steps.NQ.why || 'SIN'; why.set(w, (why.get(w) || 0) + 1) }
+  for (const x of recs){ const k = origSort(x.orig).join('+'); const o = org.get(k) || {n:0, f:0}; o.n++; if (recFirma(x)) o.f++; org.set(k, o) }
+  const t0 = isoDate(from).getTime(), t1 = isoDate(addDays(to, 1)).getTime();
+  let ms = 0; for (const s of ACT.shifts){ const a = Math.max(s.start, t0), b = Math.min(s.end || Date.now(), t1); if (b > a) ms += b - a }
+  const calls = CALLS.filter(c => inR(c.day));
+  return {recs, n:recs.length, disp: snapDays ? disp.size : null, snapDays, nq:nq.length, calif:recs.length - nq.length,
+    inter:recs.filter(recInter).length, firm:recs.filter(recFirma).length, asis:recs.filter(recAsis).length, venta:recs.filter(recVenta).length,
+    why:[...why].sort((a,b) => b[1]-a[1]), org:[...org].sort((a,b) => b[1].n - a[1].n), ms,
+    calls:{n:calls.length, a:calls.filter(c => c.ans === 'si').length, w:calls.filter(c => c.res === 'WBD').length}};
+}
+function actDays(){
+  const s = new Set([dayKey()]);
+  Object.values(ACT.recs).forEach(x => s.add(x.day)); Object.keys(ACT.snaps).forEach(d => s.add(d));
+  CALLS.forEach(c => s.add(c.day)); ACT.shifts.forEach(x => s.add(dayKey(new Date(x.start))));
+  return [...s].sort().reverse();
+}
+
+function paintTurno(){
+  const m = $('#mainT'); if (!m) return;
+  const today = dayKey(), open = shiftOpen(), sh = shiftsOn(today), T = actStats(today, today);
+  const worked = sh.reduce((t,s) => t + ((s.end || Date.now()) - s.start), 0);
+  const stTxt = open ? `<b class="on">En turno desde ${hhmm(open.start)}</b><small>${durTxt(Date.now() - open.start)} · se empieza solo con tu primer abordaje</small>`
+    : sh.length ? `<b>Turno terminado</b><small>${sh.map(s => hhmm(s.start) + '–' + hhmm(s.end)).join(' · ')} · ${durTxt(worked)}</small>`
+    : `<b>Sin turno hoy</b><small>Empieza solo con tu primer abordaje</small>`;
+  const head = `<section class="box">
+      <div class="shiftrow"><div class="st">${stTxt}</div>${open ? '<button class="btn soft sm" type="button" data-shift="end">Terminar turno</button>' : '<button class="btn sm" type="button" data-shift="start">Empezar turno</button>'}</div>
+    </section>
+    <div class="cstats">
+      <div class="cstat"><b>${T.n}</b><span>Abordajes hoy</span></div>
+      <div class="cstat ok"><b>${T.firm}</b><span>Firmas hoy</span></div>
+      <div class="cstat"><b>${worked > 6e5 ? (T.n / (worked / 36e5)).toFixed(1) : '—'}</b><span>Abordajes por hora</span></div>
+    </div>`;
+
+  // Periodo
+  const days = actDays();
+  let from, to, label, chips;
+  if (actView === 'week'){
+    const weeks = [...new Set(days.map(weekStart))].slice(0, 10);
+    if (!actSel || !weeks.includes(actSel)) actSel = weeks[0];
+    from = actSel; to = addDays(actSel, 6); label = actSel === weekStart(today) ? 'Esta semana' : `Semana del ${fmtShort(from)}`;
+    chips = weeks.map(w => `<button class="dchip" type="button" data-ad="${w}" aria-pressed="${w===actSel}"><small>${w === weekStart(today) ? 'esta' : 'sem.'}</small>${esc(fmtShort(w))}<small>al ${esc(fmtShort(addDays(w,6)))}</small></button>`).join('');
+  } else {
+    const ds = days.slice(0, 21);
+    if (!actSel || !ds.includes(actSel)) actSel = ds[0];
+    from = to = actSel; label = actSel === today ? 'Hoy' : fmtDay(actSel);
+    chips = ds.map(d => `<button class="dchip" type="button" data-ad="${d}" aria-pressed="${d===actSel}"><small>${d === today ? 'hoy' : esc(fmtWd(d))}</small>${esc(fmtShort(d))}<small>${Object.values(ACT.recs).filter(x => x.day === d).length} ab.</small></button>`).join('');
+  }
+  const S = actStats(from, to);
+  const per = `<div class="tabs" role="tablist">
+      <button type="button" data-av="day" aria-selected="${actView==='day'}">Por día</button>
+      <button type="button" data-av="week" aria-selected="${actView==='week'}">Por semana</button>
+    </div>
+    <div class="dates"><div class="daterow">${chips}</div></div>`;
+
+  const ab = (a, b) => b ? `${a} de ${b}` : '';
+  const rates = `<div class="cstats">
+      <div class="cstat"><b>${S.disp ? rate(S.n, S.disp) : '—'}</b><span>Contacto</span><em>${S.disp ? ab(S.n, S.disp) + ' disp.' : 'sin CRM cargado'}</em></div>
+      <div class="cstat ok"><b>${rate(S.firm, S.n)}</b><span>Cierre s/ abordados</span><em>${ab(S.firm, S.n)}</em></div>
+      <div class="cstat ok"><b>${S.disp ? rate(S.firm, S.disp) : '—'}</b><span>Cierre s/ disponibles</span><em>${S.disp ? ab(S.firm, S.disp) : ''}</em></div>
+    </div>`;
+  const fr = (l, n, sub, cls='') => `<div class="fr ${cls}"><span>${l}</span><b>${n}</b>${sub ? `<small>${sub}</small>` : ''}</div>`;
+  const funnel = `<section class="box"><h3>Embudo · ${esc(label)}</h3>
+      ${S.n < 10 && S.n > 0 ? `<div class="caution">Son ${S.n} abordaje${S.n===1?'':'s'}: tómalo como referencia, no como tendencia. La semana dice más que el día.</div>` : ''}
+      <div class="funl">
+        ${fr('Prospectos disponibles', S.disp ?? '—', S.disp ? `NC elegibles (sin rojos ni casos de otros)${actView==='week' ? ', cada huésped una vez' : ''}` : 'Ese día no se cargó el CRM')}
+        ${fr('Abordados', S.n, S.disp ? `${rate(S.n, S.disp)} de los disponibles` : '')}
+        ${fr('No califican', S.nq, S.n ? `${rate(S.nq, S.n)} de los abordados` : '', 'sub')}
+        ${fr('Califican', S.calif, S.n ? `${rate(S.calif, S.n)} de los abordados` : '')}
+        ${fr('Interesados', S.inter, S.calif ? `${rate(S.inter, S.calif)} de los que califican · INF, RC o INV` : 'INF, RC o INV')}
+        ${fr('Firmas', S.firm, S.calif ? `${rate(S.firm, S.calif)} de los que califican · ${rate(S.firm, S.inter)} de los interesados` : 'INV', 'key')}
+        ${fr('Asistieron', S.asis, S.firm ? `${rate(S.asis, S.firm)} de las firmas` : 'Llega con el CRM de los días siguientes')}
+        ${fr('Ventas', S.venta, S.asis ? `${rate(S.venta, S.asis)} de los que asistieron` : 'CONTRACT en el CRM', 'key')}
+      </div>
+    </section>`;
+  const maxW = S.why.length ? S.why[0][1] : 1;
+  const why = `<section class="box"><h3>No califican · motivos</h3>
+      ${S.why.length ? `<div class="bars">${S.why.map(([k,n]) => `<div class="barl"><span>${esc(whyName(k))}</span><b>${n} <small style="color:var(--muted);font-weight:500">${rate(n, S.nq)}</small></b><i style="--w:${Math.round(n*100/maxW)}%"></i></div>`).join('')}</div>`
+        : '<p class="hint">Cuando marques NQ en una ficha y elijas el motivo, aquí verás cuáles se repiten.</p>'}
+    </section>`;
+  const org = `<section class="box"><h3>Por origen</h3>
+      ${S.org.length ? `<div style="overflow-x:auto"><table class="htable"><thead><tr><th>Origen</th><th>Abord.</th><th>Firmas</th><th>Cierre</th></tr></thead><tbody>
+        ${S.org.map(([k,o]) => `<tr><td>${k ? esc(k.split('+').map(origName).join(' + ')) : '<small>Sin origen</small>'}</td><td>${o.n}</td><td>${o.f}</td><td>${rate(o.f, o.n)}</td></tr>`).join('')}
+      </tbody></table></div>` : '<p class="hint">Aquí verás qué tipo de contacto te deja más firmas.</p>'}
+    </section>`;
+  const misc = `<section class="box"><h3>Llamadas y tiempo</h3>
+      <div class="funl">
+        ${fr('Llamadas', S.calls.n, S.calls.n ? `${S.calls.a} contestaron (${rate(S.calls.a, S.calls.n)}) · ${S.calls.w} WBD (${rate(S.calls.w, S.calls.a)} de contestadas)` : '')}
+        ${fr('Tiempo en turno', S.ms ? durTxt(S.ms) : '—', S.ms > 6e5 ? `${(S.n / (S.ms / 36e5)).toFixed(1)} abordajes por hora` : '')}
+      </div>
+    </section>`;
+  const list = S.recs.length ? `<section class="box"><h3>Tus abordados · ${S.recs.length}</h3><ul class="logl">${[...S.recs].sort((a,b) => b.at - a.at).slice(0, 200).map(x => {
+      const st = x.steps.NQ ? `<span class="chip stop">NQ${x.steps.NQ.why ? ' · ' + esc(whyName(x.steps.NQ.why)) : ''}</span>` : recVenta(x) ? '<span class="chip ok">Venta</span>' : recAsis(x) ? '<span class="chip ok">Asistió</span>' : recFirma(x) ? '<span class="chip ok">Firma</span>' : recInter(x) ? '<span class="chip acc">Interesado</span>' : '<span class="chip">Abordado</span>';
+      const o = x.orig.length ? `<span class="chip">${esc(origSort(x.orig).map(origName).join(' + '))}</span>` : '';
+      return `<li class="logi" ${x.gid && BYID.has(x.gid) && !x.anon ? `data-recopen="${esc(x.gid)}" style="cursor:pointer"` : ''}><div class="tm"><b>${esc(x.room || '—')}</b>${hhmm(x.at)}</div><div class="who"><span class="name">${esc(x.anon ? 'Sin nombre (más de ' + CFG.CALLS_KEEP_DAYS + ' días)' : title(x.name || ''))}</span><span class="sub">${st}${o}</span></div><span></span></li>`;
+    }).join('')}</ul></section>` : '';
+  const tools = `<section class="box"><h3>Asistencias y ventas</h3>
+      <p class="hint">Cada vez que cargas el CRM del día, la app busca a tus abordados y lee INV, SH, Q.OUT y CONTRACT. Los que ya salieron del hotel no vienen en "en casa": para esos, carga aquí un reporte del CRM (mensual o el que tengas) y solo se cruza, no cambia tu lista del día.</p>
+      <div class="blactions"><label class="btn soft sm" for="fileRep">Cruzar con reporte</label>${Object.keys(ACT.recs).length ? '<button class="btn soft sm" type="button" data-actcsv>Descargar CSV</button>' : ''}</div>
+      <p class="hint">Después de ${CFG.CALLS_KEEP_DAYS} días los abordados se quedan sin nombre; los números se conservan. El respaldo de Pendientes también guarda este registro.</p>
+    </section>`;
+  m.innerHTML = head + per + rates + funnel + why + org + misc + list + tools;
+}
+function actCSV(){
+  const out = [['fecha','hora','habitacion','nombre','origen','no_califica','motivo','informado','cupon','firma','asistio','q_out','contrato']];
+  for (const x of Object.values(ACT.recs).sort((a,b) => a.at - b.at))
+    out.push([x.day, hhmm(x.at), x.room || '', x.anon ? '' : title(x.name || ''), origSort(x.orig).map(origName).join(' + '), x.steps.NQ ? 'Sí' : '', x.steps.NQ ? whyName(x.steps.NQ.why || 'SIN') : '',
+      x.steps.INF ? 'Sí' : '', x.steps.RC ? 'Sí' : '', recFirma(x) ? 'Sí' : '', recAsis(x) ? 'Sí' : '', x.out.qout || '', x.out.contract || '']);
+  const csv = out.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['﻿' + csv], {type:'text/csv'})); a.download = `turno-guestylive-${dayKey()}.csv`;
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove() }, 1000);
+}
+function actMerge(inc){
+  let n = 0;
+  for (const [h, x] of Object.entries(inc.recs)){
+    const cur = ACT.recs[h];
+    if (!cur){ ACT.recs[h] = x; n++; continue }
+    for (const [k, v] of Object.entries(x.steps)) if (!cur.steps[k]){ cur.steps[k] = v; n++ }
+    for (const [k, v] of Object.entries(x.out)) if (!(k in cur.out)){ cur.out[k] = v; n++ }
+    cur.orig = [...new Set([...cur.orig, ...x.orig])];
+  }
+  const have = new Set(ACT.shifts.map(s => s.id));
+  for (const s of inc.shifts) if (!have.has(s.id)){ ACT.shifts.push(s); n++ }
+  for (const [d, s] of Object.entries(inc.snaps)) ACT.snaps[d] = {ids:[...new Set([...(ACT.snaps[d] ? ACT.snaps[d].ids : []), ...s.ids])], at:Math.max(s.at, ACT.snaps[d] ? ACT.snaps[d].at : 0)};
+  return n;
+}
+$('#mainT').addEventListener('click', e => {
+  const li = e.target.closest('[data-recopen]'); if (li){ openSheet(li.dataset.recopen); return }
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.shift === 'start'){ shiftStart(); toast('Turno empezado ' + hhmm(Date.now())); paintTurno(); return }
+  if (b.dataset.shift === 'end'){ shiftEnd(); toast('Turno terminado'); paintTurno(); return }
+  if (b.dataset.av){ actView = b.dataset.av; actSel = null; store.set(ACTV_KEY, actView); paintTurno(); return }
+  if (b.dataset.ad){ actSel = b.dataset.ad; paintTurno(); return }
+  if (b.hasAttribute('data-actcsv')){ actCSV(); return }
+});
+$('#fileRep').addEventListener('change', e => { if (e.target.files.length) reportLoad([...e.target.files]); e.target.value = '' });
+
 /* ---------- Lista del día (imagen) ---------- */
 const IDB = {
   db: null,
@@ -1339,8 +1701,9 @@ function bindZoom(w){
 function setTab(t){
   tab = t;
   document.querySelectorAll('.tabs [data-tab]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === t)));
-  $('#searchbar').hidden = t !== 'g'; $('#mainG').hidden = t !== 'g'; $('#mainL').hidden = t !== 'l'; $('#mainC').hidden = t !== 'c';
+  $('#searchbar').hidden = t !== 'g'; $('#mainG').hidden = t !== 'g'; $('#mainL').hidden = t !== 'l'; $('#mainC').hidden = t !== 'c'; $('#mainT').hidden = t !== 't';
   if (t === 'c') paintCalls();
+  if (t === 't') paintTurno();
   window.scrollTo(0, 0);
   if (t === 'l') requestAnimationFrame(fitWrap);
 }
@@ -1368,6 +1731,7 @@ function loadDemo(){
 /* ---------- Arranque ---------- */
 (function boot(){
   callsLoad();
+  actLoad();
   $('#ver').textContent = 'Versión ' + APP_VERSION;
   document.title = 'GuestyLIVE v' + APP_VERSION;
   blLoad();
@@ -1376,7 +1740,7 @@ function loadDemo(){
   if (saved && saved.day === dayKey() && Array.isArray(saved.rows) && saved.rows.length){
     const base = {id:'',name:'',room:'',in:'',out:'',country:'',agency:'',group:'',market:'',resv:'',memb:'',ad:'',ch:'',sroom:'',tour:'',contract:'',qpre:'',qout:'',cmt:'',AVL:false,INF:false,RC:false,INV:false,SH:false};
     saved.rows = saved.rows.map(r => ({...base, ...r}));
-    DATA = saved; DEMO = false; index(); render() }
+    DATA = saved; DEMO = false; index(); actSnapshot(); actSave(); render() }
   else { if (saved) store.del(KEY); loadDemo() }
   listaLoad();
   paintCalls();
