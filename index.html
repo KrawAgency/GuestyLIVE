@@ -1,10 +1,10 @@
 <!doctype html>
-<!-- GuestyLIVE · v1.21 -->
+<!-- GuestyLIVE · v1.22 -->
 <html lang="es-MX">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>GuestyLIVE v1.21</title>
+<title>GuestyLIVE v1.22</title>
 <meta name="theme-color" content="#F3F6F6" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0C1312" media="(prefers-color-scheme: dark)">
 <meta name="mobile-web-app-capable" content="yes">
@@ -180,7 +180,7 @@ main.col{padding-block:6px 48px;display:grid;grid-template-columns:minmax(0,1fr)
 .sheet .grab{width:42px;height:5px;border-radius:3px;background:var(--line)}
 .sheet .scroll{overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 .sheet .inner{max-width:620px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:6px calc(28px + env(safe-area-inset-bottom,0px));display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
-.x{position:absolute;top:12px;right:max(14px,env(safe-area-inset-right,0px));width:38px;height:38px;border-radius:50%;border:0;background:var(--surface);box-shadow:var(--shadow);display:grid;place-items:center;color:var(--muted)}
+.x{position:absolute;z-index:2;top:12px;right:max(14px,env(safe-area-inset-right,0px));width:38px;height:38px;border-radius:50%;border:0;background:var(--surface);box-shadow:var(--shadow);display:grid;place-items:center;color:var(--muted)}
 
 .shead{display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;align-items:center;padding-right:44px}
 .shead .tag{width:86px;background:var(--accent);color:var(--accent-ink);padding:9px 0 10px}
@@ -440,7 +440,7 @@ main.col{padding-block:6px 48px;display:grid;grid-template-columns:minmax(0,1fr)
 
 <script>
 /* ============ CONFIGURACIÓN (edítala aquí) ============ */
-const APP_VERSION = '1.21';   // súbela en cada cambio
+const APP_VERSION = '1.22';   // súbela en cada cambio
 const CFG = {
   QPRE: { NQ:['No califica','stop'], NC:['No contactado','warn'], CO:['Contactado','acc'], Q:['Calificado','ok'], CT:['CT','own'] },
   QOUT: { NS:['No show','stop'], Q:['Calificó','ok'], QA:['Calificó A','ok'], QB:['Calificó B','ok'], CT:['CT','own'], CTG:['CTG','own'], NQ:['No calificó','stop'] },
@@ -1431,7 +1431,7 @@ function abHTML(r){
   else if (x.claim === true && !x.steps.INV) inv = `<div class="noterow"><small>Invitación tuya (la reclamaste)</small><button class="btn soft sm" type="button" data-claim="0">No fue mía</button></div>`;
   const why = x.steps.NQ ? `<div class="sublbl">¿Por qué no califica?</div><div class="chiprow wrap">${CFG.NQ_WHY.map(([k,l]) => `<button type="button" class="fchip" data-why="${k}" aria-pressed="${x.steps.NQ.why===k}">${esc(l)}</button>`).join('')}</div>` : '';
   const firm = recFirma(x), intOn = recInter(x);
-  const intBtn = x.steps.NQ ? '' : `<button class="intbtn" type="button" data-int aria-pressed="${intOn}" ${firm ? 'disabled' : ''}>${intOn ? IC.yes : '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4.5" y="4.5" width="15" height="15" rx="4" stroke="currentColor" stroke-width="2"/></svg>'}<span>Está interesado<small>${firm ? 'Tiene tu INV: se da por hecho' : intOn ? 'Toca para quitar' : 'Márcalo tú; INF y RC no cuentan como interés'}</small></span></button>`;
+  const intBtn = `<button class="intbtn" type="button" data-int aria-pressed="${intOn}" ${firm ? 'disabled' : ''}>${intOn ? IC.yes : '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4.5" y="4.5" width="15" height="15" rx="4" stroke="currentColor" stroke-width="2"/></svg>'}<span>Está interesado<small>${firm ? 'Tiene tu INV: se da por hecho' : intOn ? 'Toca para quitar' : 'Márcalo tú; INF y RC no cuentan como interés'}</small></span></button>`;
   return `<h3>Abordaje</h3>
     <div class="prevcalls">${st.map(([l,v]) => `<span class="chip ${v === 'stop' ? 'stop' : v ? 'ok' : ''}">${v && v !== 'stop' ? '✓ ' : ''}${l}</span>`).join('')}</div>
     ${intBtn}${inv}${why}
@@ -1497,7 +1497,8 @@ function actStats(from, to){
   let ms = 0; for (const s of ACT.shifts){ const a = Math.max(s.start, t0), b = Math.min(s.end || Date.now(), t1); if (b > a) ms += b - a }
   const calls = CALLS.filter(c => inR(c.day));
   return {recs, n:recs.length, disp: snapDays ? disp.size : null, snapDays, nq:nq.length, calif:recs.length - nq.length,
-    inter:recs.filter(recInter).length, firm:recs.filter(recFirma).length, otro:recs.filter(recOtro).length, asis:recs.filter(recAsis).length, venta:recs.filter(recVenta).length,
+    inter:recs.filter(recInter).length, firm:recs.filter(recFirma).length,
+    interNQ:recs.filter(x => recInter(x) && x.steps.NQ).length, firmNQ:recs.filter(x => recFirma(x) && x.steps.NQ).length, otro:recs.filter(recOtro).length, asis:recs.filter(recAsis).length, venta:recs.filter(recVenta).length,
     why:[...why].sort((a,b) => b[1]-a[1]), org:[...org].sort((a,b) => b[1].n - a[1].n), ms,
     calls:{n:calls.length, a:calls.filter(c => c.ans === 'si').length, w:calls.filter(c => c.res === 'WBD').length}};
 }
@@ -1557,10 +1558,10 @@ function paintTurno(){
       <div class="funl">
         ${fr('Prospectos disponibles', S.disp ?? '—', S.disp ? `NC elegibles (sin rojos ni casos de otros)${actView==='week' ? ', cada huésped una vez' : ''}` : 'Ese día no se cargó el CRM')}
         ${fr('Abordados', S.n, S.disp ? `${rate(S.n, S.disp)} de los disponibles` : '')}
+        ${fr('Califican', S.calif, S.n ? `${rate(S.calif, S.n)} de los abordados` : '', 'sub')}
         ${fr('No califican', S.nq, S.n ? `${rate(S.nq, S.n)} de los abordados` : '', 'sub')}
-        ${fr('Califican', S.calif, S.n ? `${rate(S.calif, S.n)} de los abordados` : '')}
-        ${fr('Interesados', S.inter, S.calif ? `${rate(S.inter, S.calif)} de los que califican · marcados por ti o con tu INV` : 'Marcados por ti o con tu INV')}
-        ${fr('Firmas', S.firm, S.calif ? `${rate(S.firm, S.calif)} de los que califican · ${rate(S.firm, S.inter)} de los interesados` : 'INV', 'key')}
+        ${fr('Interesados', S.inter, S.n ? `${rate(S.inter, S.n)} de los abordados${S.inter ? ` · ${S.inter - S.interNQ} califican, ${S.interNQ} NQ` : ''}` : 'Marcados por ti o con tu INV')}
+        ${fr('Firmas', S.firm, S.n ? `${rate(S.firm, S.n)} de los abordados · ${rate(S.firm, S.inter)} de los interesados${S.firm ? ` · ${S.firm - S.firmNQ} califican, ${S.firmNQ} NQ` : ''}` : 'Tus INV', 'key')}
         ${S.otro ? fr('INV en CRM, no tuyos', S.otro, 'El CRM dice INV pero no lo marcaste tú · no cuentan (reclámalos en la ficha si fueron tuyos)', 'sub') : ''}
         ${fr('Asistieron', S.asis, S.firm ? `${rate(S.asis, S.firm)} de las firmas` : 'Llega con el CRM de los días siguientes')}
         ${fr('Ventas', S.venta, S.asis ? `${rate(S.venta, S.asis)} de los que asistieron` : 'CONTRACT en el CRM', 'key')}
