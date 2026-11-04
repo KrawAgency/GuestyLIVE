@@ -1,10 +1,10 @@
 <!doctype html>
-<!-- GuestyLIVE · v1.24 -->
+<!-- GuestyLIVE · v1.25 -->
 <html lang="es-MX">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>GuestyLIVE v1.24</title>
+<title>GuestyLIVE v1.25</title>
 <meta name="theme-color" content="#F3F6F6" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0C1312" media="(prefers-color-scheme: dark)">
 <meta name="mobile-web-app-capable" content="yes">
@@ -441,7 +441,7 @@ main.col{padding-block:6px 48px;display:grid;grid-template-columns:minmax(0,1fr)
 
 <script>
 /* ============ CONFIGURACIÓN (edítala aquí) ============ */
-const APP_VERSION = '1.24';   // súbela en cada cambio
+const APP_VERSION = '1.25';   // súbela en cada cambio
 const CFG = {
   QPRE: { NQ:['No califica','stop'], NC:['No contactado','warn'], CO:['Contactado','acc'], Q:['Calificado','ok'], CT:['CT','own'] },
   QOUT: { NS:['No show','stop'], Q:['Calificó','ok'], QA:['Calificó A','ok'], QB:['Calificó B','ok'], CT:['CT','own'], CTG:['CTG','own'], NQ:['No calificó','stop'] },
@@ -652,6 +652,16 @@ function dateOrder(pairs){
   const today = dayKey(), score = o => pairs.filter(([a,b]) => { const i = toISO(a,o), x = toISO(b,o);
     return i && x && i <= x && diffDays(i, x) <= 45 && Math.abs(diffDays(i, today)) <= 60 }).length;
   return score('mdy') > score('dmy') ? 'mdy' : 'dmy';
+}
+// CRM guardado con la versión vieja: siempre leía día/mes. Si el archivo venía mes/día, aquí se voltea de regreso.
+function fixSwapped(d){
+  const sw = iso => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ''); return m ? `${m[1]}-${m[3]}-${m[2]}` : iso };
+  const ok = iso => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ''); return !!m && +m[2] >= 1 && +m[2] <= 12 && +m[3] >= 1 && +m[3] <= 31 };
+  const today = dayKey(), good = (a, b) => ok(a) && ok(b) && a <= b && diffDays(a, b) <= 45 && Math.abs(diffDays(a, today)) <= 60;
+  const asIs = d.rows.filter(r => good(r.in, r.out)).length, swapped = d.rows.filter(r => good(sw(r.in), sw(r.out))).length;
+  if (swapped > asIs) for (const r of d.rows){ r.in = sw(r.in); r.out = sw(r.out); r.tour = sw(r.tour) }
+  d.pv = PARSE_V;   // ya revisado: lo que quedó es lo mejor que se puede con lo guardado
+  return swapped > asIs;
 }
 function parseSheet(aoa){
   const hi = aoa.findIndex(r => r && r.some(c => norm(c)==='NAME') && r.some(c => norm(c)==='ROOM'));
@@ -1788,6 +1798,7 @@ function loadDemo(){
   if (saved && saved.day === dayKey() && Array.isArray(saved.rows) && saved.rows.length){
     const base = {id:'',name:'',room:'',in:'',out:'',country:'',agency:'',group:'',market:'',resv:'',memb:'',ad:'',ch:'',sroom:'',tour:'',contract:'',qpre:'',qout:'',cmt:'',AVL:false,INF:false,RC:false,INV:false,SH:false};
     saved.rows = saved.rows.map(r => ({...base, ...r}));
+    if (saved.pv !== PARSE_V && fixSwapped(saved)){ store.set(KEY, JSON.stringify(saved)); setTimeout(() => toast('Corregí las fechas del CRM guardado'), 500) }
     DATA = saved; DEMO = false; STALE = saved.pv !== PARSE_V; index(); if (!STALE){ actSnapshot(); actSave() } render() }
   else { if (saved) store.del(KEY); loadDemo() }
   listaLoad();
