@@ -1,10 +1,10 @@
 <!doctype html>
-<!-- GuestyLIVE · v1.23 -->
+<!-- GuestyLIVE · v1.24 -->
 <html lang="es-MX">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>GuestyLIVE v1.23</title>
+<title>GuestyLIVE v1.24</title>
 <meta name="theme-color" content="#F3F6F6" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0C1312" media="(prefers-color-scheme: dark)">
 <meta name="mobile-web-app-capable" content="yes">
@@ -408,6 +408,7 @@ main.col{padding-block:6px 48px;display:grid;grid-template-columns:minmax(0,1fr)
     <div class="try">Mientras, prueba GuestyLIVE con huéspedes de ejemplo: <button type="button" data-try="1402">1402</button><button type="button" data-try="Morales">Morales</button><button type="button" data-try="2115">2115</button></div>
   </section>
 
+  <div id="stale"></div>
   <div id="tiles" class="tiles"></div>
   <div id="dates" class="dates" hidden></div>
   <div id="meta" class="meta" aria-live="polite"></div>
@@ -440,7 +441,7 @@ main.col{padding-block:6px 48px;display:grid;grid-template-columns:minmax(0,1fr)
 
 <script>
 /* ============ CONFIGURACIÓN (edítala aquí) ============ */
-const APP_VERSION = '1.23';   // súbela en cada cambio
+const APP_VERSION = '1.24';   // súbela en cada cambio
 const CFG = {
   QPRE: { NQ:['No califica','stop'], NC:['No contactado','warn'], CO:['Contactado','acc'], Q:['Calificado','ok'], CT:['CT','own'] },
   QOUT: { NS:['No show','stop'], Q:['Calificó','ok'], QA:['Calificó A','ok'], QB:['Calificó B','ok'], CT:['CT','own'], CTG:['CTG','own'], NQ:['No calificó','stop'] },
@@ -490,7 +491,10 @@ const tagHTML = room => { const f = FS[room]; return f
 
 // ⚠ No cambiar estas llaves entre versiones: así cada versión nueva lee lo que guardó la anterior.
 const KEY = 'huespedes_v1', KBD_KEY = 'huespedes_kbd';
-const SCHEMA = 1;   // formato de lo guardado; si algún día cambia, se migra en blLoad()
+const SCHEMA = 1;
+const PARSE_V = 2;   // súbelo si cambia cómo se lee el archivo: lo guardado con otra versión pide recargar
+let STALE = false;   // el CRM guardado se leyó con una versión anterior (fechas posiblemente volteadas)
+const staleHTML = () => STALE ? `<div class="caution">Corregí cómo se leen las fechas del CRM. Vuelve a cargar los dos archivos de hoy (en casa y llegadas) con <b>Agregar archivo</b>, abajo en Huéspedes, para que las llegadas, salidas y la lista de llamadas salgan bien.</div>` : '';   // formato de lo guardado; si algún día cambia, se migra en blLoad()
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const norm = s => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().trim();
@@ -679,7 +683,7 @@ function parseSheet(aoa){
 async function readFiles(fileList, append){
   if (typeof XLSX === 'undefined'){ toast('No se pudo cargar el lector de Excel. Revisa tu conexión y vuelve a abrir.'); return }
   const files = [...fileList]; if (!files.length) return;
-  const base = (append && DATA && !DEMO) ? DATA : { day: dayKey(), at: Date.now(), files: [], rows: [] };
+  const base = (append && DATA && !DEMO && DATA.pv === PARSE_V) ? DATA : { day: dayKey(), at: Date.now(), files: [], rows: [], pv: PARSE_V };
   const map = new Map(base.rows.map(r => [r.id, r]));
   const added = [];
   try{
@@ -692,7 +696,7 @@ async function readFiles(fileList, append){
     }
   }catch(e){ toast(e.message || 'No pude leer el archivo.'); return }
   base.rows = [...map.values()]; base.at = Date.now(); base.day = dayKey();
-  DATA = base; DEMO = false; filter = null; closeSheet(true);
+  DATA = base; DEMO = false; STALE = false; filter = null; closeSheet(true);
   for (const [id,it] of Object.entries(BL.items)) if (it.demo) delete BL.items[id]; blSave();
   for (const [h,x] of Object.entries(ACT.recs)) if (x.demo) delete ACT.recs[h];
   actReconcile(base.rows); actSnapshot(!append); actSave();
@@ -841,6 +845,7 @@ function render(){
   const q = $('#q').value, nq = norm(q);
   $('#clear').hidden = !q;
   $('#welcome').hidden = !DEMO;
+  $('#stale').innerHTML = staleHTML();
   { const t = new Date().toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'}); $('#today').textContent = t.charAt(0).toUpperCase() + t.slice(1) }
   const st = $('#status');
   if (DEMO){ st.className = 'fresh demo'; st.innerHTML = '<i></i>Ejemplo' }
@@ -1191,18 +1196,20 @@ function addCall(r, ans, res, note){
   }
   toast(`Guardado: ${callLabel(c)}${extra}`);
 }
+let QHID = {};   // por qué se quedó fuera cada huésped de la lista (para que se vea)
 function queue(){
-  const today = dayKey();
+  const today = dayKey(), H = QHID = {gone:0, dep:0, stop:0, own:0, done:0};
   return rows().filter(r => {
     const q = eff(r,'qpre');
     if (!((QF.nc && q === 'NC') || (QF.co && q === 'CO'))) return false;
-    if (r.out && r.out < today) return false;
-    if (QF.hideDep && r.out === today) return false;
+    if (r.out && r.out < today){ H.gone++; return false }
+    if (QF.hideDep && r.out === today){ H.dep++; return false }
     const tg = tagsOf(r);
-    if (QF.hideStop && tg.some(t => t[1] === 'stop')) return false;
-    if (QF.hideOwn && tg.some(t => t[1] === 'own')) return false;
+    if (QF.hideStop && tg.some(t => t[1] === 'stop')){ H.stop++; return false }
+    if (QF.hideOwn && tg.some(t => t[1] === 'own')){ H.own++; return false }
     r._cs = callState(r);
-    return r._cs.st !== 'done';
+    if (r._cs.st === 'done'){ H.done++; return false }
+    return true;
   }).sort((a,b) => {
     const w = x => x._cs.st === 'later' ? 0 : x._cs.st === 'new' ? 1 : 2;
     return w(a) - w(b) || a._cs.n - b._cs.n || (b.in||'').localeCompare(a.in||'') || a.room.localeCompare(b.room,'es',{numeric:true});
@@ -1238,6 +1245,9 @@ function paintCalls(){
     const chip = (k, l) => `<button class="fchip" type="button" data-qf="${k}" aria-pressed="${!!QF[k]}">${l}</button>`;
     body = `<div class="chiprow">${chip('nc','NC')}${chip('co','CO')}${chip('hideStop','Ocultar rojos')}${chip('hideOwn','Ocultar con dueño')}${chip('hideDep','Ocultar salen hoy')}</div>
       ${dates}
+      ${staleHTML()}
+      ${(() => { const h = QHID, parts = [h.stop && `${h.stop} rojos`, h.own && `${h.own} con dueño`, h.dep && `${h.dep} salen hoy`, h.done && `${h.done} ya llamados hoy`, h.gone && `${h.gone} ya salieron (fecha de salida pasada)`].filter(Boolean);
+        return parts.length ? `<p class="hint">Ocultos: ${parts.join(' · ')}</p>` : '' })()}
       <div class="meta"><span>${Q.length} por llamar${callArr ? ' · llegó ' + (callArr === dayKey() ? 'hoy' : esc(fmtShort(callArr))) : ''}</span></div>
       <ul class="results">${Q.slice(0, 300).map(r => {
         const s = stay(r), cs = r._cs, chips = [];
@@ -1778,7 +1788,7 @@ function loadDemo(){
   if (saved && saved.day === dayKey() && Array.isArray(saved.rows) && saved.rows.length){
     const base = {id:'',name:'',room:'',in:'',out:'',country:'',agency:'',group:'',market:'',resv:'',memb:'',ad:'',ch:'',sroom:'',tour:'',contract:'',qpre:'',qout:'',cmt:'',AVL:false,INF:false,RC:false,INV:false,SH:false};
     saved.rows = saved.rows.map(r => ({...base, ...r}));
-    DATA = saved; DEMO = false; index(); actSnapshot(); actSave(); render() }
+    DATA = saved; DEMO = false; STALE = saved.pv !== PARSE_V; index(); if (!STALE){ actSnapshot(); actSave() } render() }
   else { if (saved) store.del(KEY); loadDemo() }
   listaLoad();
   paintCalls();
