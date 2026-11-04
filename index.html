@@ -1,10 +1,10 @@
 <!doctype html>
-<!-- GuestyLIVE · v1.26 -->
+<!-- GuestyLIVE · v1.27 -->
 <html lang="es-MX">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>GuestyLIVE v1.26</title>
+<title>GuestyLIVE v1.27</title>
 <meta name="theme-color" content="#F3F6F6" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0C1312" media="(prefers-color-scheme: dark)">
 <meta name="mobile-web-app-capable" content="yes">
@@ -353,6 +353,12 @@ main.col{padding-block:6px 48px;display:grid;grid-template-columns:minmax(0,1fr)
 .intbtn[aria-pressed="true"]{background:var(--ok-soft);border-color:var(--ok);color:var(--ok)}
 .intbtn[aria-pressed="true"] svg{color:var(--ok)}
 .intbtn:disabled{cursor:default;opacity:.85}
+.qfbar{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:12px 14px;border:0;border-radius:16px;background:var(--surface);box-shadow:var(--shadow);text-align:left}
+.qfbar span{display:grid;gap:2px;min-width:0}
+.qfbar b{font-size:15px}
+.qfbar small{font-size:12.5px;color:var(--muted);line-height:1.3}
+.qfbar svg{width:20px;height:20px;color:var(--muted)}
+.qfpanel{gap:12px;margin-top:-6px}
 .caution{font-size:12.5px;color:var(--warn);background:var(--warn-soft);border-radius:12px;padding:8px 11px;font-weight:600}
 @media (max-width:440px){ .tabs button svg{display:none} .tabs button{font-size:14px} }
 
@@ -441,7 +447,7 @@ main.col{padding-block:6px 48px;display:grid;grid-template-columns:minmax(0,1fr)
 
 <script>
 /* ============ CONFIGURACIÓN (edítala aquí) ============ */
-const APP_VERSION = '1.26';   // súbela en cada cambio
+const APP_VERSION = '1.27';   // súbela en cada cambio
 const CFG = {
   QPRE: { NQ:['No califica','stop'], NC:['No contactado','warn'], CO:['Contactado','acc'], Q:['Calificado','ok'], CT:['CT','own'] },
   QOUT: { NS:['No show','stop'], Q:['Calificó','ok'], QA:['Calificó A','ok'], QB:['Calificó B','ok'], CT:['CT','own'], CTG:['CTG','own'], NQ:['No calificó','stop'] },
@@ -1170,7 +1176,8 @@ const CALL_KEY = 'guestylive_llamadas', QF_KEY = 'guestylive_filtros_llamadas';
 const ANS = { si:'Contestaron', no:'No contestó', ocu:'Ocupado / buzón' };
 const RES = { WBD:['WBD','ok'], COLG:['Colgaron','stop'], NOINT:['No interés','stop'], INFO:['Ya tenía info','warn'], LATER:['Llamar después','own'] };
 let CALLS = [], callView = 'queue', callArr = null;
-let QF = {nc:true, co:false, hideStop:true, hideOwn:true, hideDep:false, hideArr:false};
+let QF = {nc:true, co:false, hideStop:true, hideOwn:true, hideDep:false, hideArr:false, hideGrp:false};
+let qfOpen = false;
 function callsLoad(){
   let raw = null; try{ raw = JSON.parse(store.get(CALL_KEY) || 'null') }catch(e){}
   CALLS = (raw && Array.isArray(raw.calls) ? raw.calls : []).filter(c => c && c.id && c.at && c.ans);
@@ -1208,13 +1215,14 @@ function addCall(r, ans, res, note){
 }
 let QHID = {};   // por qué se quedó fuera cada huésped de la lista (para que se vea)
 function queue(){
-  const today = dayKey(), H = QHID = {gone:0, dep:0, arr:0, stop:0, own:0, done:0};
+  const today = dayKey(), H = QHID = {gone:0, dep:0, arr:0, grp:0, stop:0, own:0, done:0};
   return rows().filter(r => {
     const q = eff(r,'qpre');
     if (!((QF.nc && q === 'NC') || (QF.co && q === 'CO'))) return false;
     if (r.out && r.out < today){ H.gone++; return false }
     if (QF.hideDep && r.out === today){ H.dep++; return false }
     if (QF.hideArr && r.in === today){ H.arr++; return false }
+    if (QF.hideGrp && isGRP(r)){ H.grp++; return false }
     const tg = tagsOf(r);
     if (QF.hideStop && tg.some(t => t[1] === 'stop')){ H.stop++; return false }
     if (QF.hideOwn && tg.some(t => t[1] === 'own')){ H.own++; return false }
@@ -1254,10 +1262,20 @@ function paintCalls(){
         ${days.map(d => `<button class="dchip" type="button" data-cd="${d}" aria-pressed="${callArr===d}"><small>${d === dayKey() ? 'hoy' : esc(fmtWd(d))}</small>${esc(fmtShort(d))}<small>${cnt.get(d)} huésp.</small></button>`).join('')}
       </div></div>` : '';
     const chip = (k, l) => `<button class="fchip" type="button" data-qf="${k}" aria-pressed="${!!QF[k]}">${l}</button>`;
-    body = `<div class="chiprow">${chip('nc','NC')}${chip('co','CO')}${chip('hideStop','Ocultar rojos')}${chip('hideOwn','Ocultar con dueño')}${chip('hideDep','Ocultar salen hoy')}${chip('hideArr','Ocultar llegan hoy')}</div>
+    const HIDES = [['hideStop','Rojos (no califican)'],['hideOwn','Con dueño'],['hideGrp','Grupos (GRP)'],['hideDep','Salen hoy'],['hideArr','Llegan hoy']];
+    const shown = [QF.nc && 'NC', QF.co && 'CO'].filter(Boolean).join(' + ') || 'nadie';
+    const hid = HIDES.filter(([k]) => QF[k]).map(([,l]) => l.split(' (')[0].toLowerCase());
+    body = `<button class="qfbar" type="button" data-qfopen aria-expanded="${qfOpen}">
+        <span><b>Filtros</b><small>Muestra ${esc(shown)}${hid.length ? ' · oculta ' + esc(hid.join(', ')) : ''}</small></span>
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="${qfOpen ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6'}" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      ${qfOpen ? `<section class="box qfpanel">
+        <div class="sublbl">Mostrar</div><div class="chiprow wrap">${chip('nc','NC · No contactados')}${chip('co','CO · Contactados')}</div>
+        <div class="sublbl">Ocultar</div><div class="chiprow wrap">${HIDES.map(([k,l]) => chip(k,l)).join('')}</div>
+      </section>` : ''}
       ${dates}
       ${staleHTML()}
-      ${(() => { const h = QHID, parts = [h.stop && `${h.stop} rojos`, h.own && `${h.own} con dueño`, h.dep && `${h.dep} salen hoy`, h.arr && `${h.arr} llegan hoy`, h.done && `${h.done} ya llamados hoy`, h.gone && `${h.gone} ya salieron (fecha de salida pasada)`].filter(Boolean);
+      ${(() => { const h = QHID, parts = [h.stop && `${h.stop} rojos`, h.own && `${h.own} con dueño`, h.dep && `${h.dep} salen hoy`, h.arr && `${h.arr} llegan hoy`, h.grp && `${h.grp} grupos`, h.done && `${h.done} ya llamados hoy`, h.gone && `${h.gone} ya salieron (fecha de salida pasada)`].filter(Boolean);
         return parts.length ? `<p class="hint">Ocultos: ${parts.join(' · ')}</p>` : '' })()}
       <div class="meta"><span>${Q.length} por llamar${callArr ? ' · llegó ' + (callArr === dayKey() ? 'hoy' : esc(fmtShort(callArr))) : ''}</span></div>
       <ul class="results">${Q.slice(0, 300).map(r => {
@@ -1305,6 +1323,7 @@ let delArm = {id:null, t:0};
 $('#mainC').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   if (b.dataset.cv){ callView = b.dataset.cv; paintCalls(); return }
+  if (b.hasAttribute('data-qfopen')){ qfOpen = !qfOpen; paintCalls(); return }
   if (b.dataset.qf){ QF[b.dataset.qf] = !QF[b.dataset.qf]; store.set(QF_KEY, JSON.stringify(QF)); paintCalls(); return }
   if (b.hasAttribute('data-cd')){ callArr = b.dataset.cd || null; paintCalls(); return }
   if (b.dataset.call){ showSheet('__call:' + b.dataset.call); return }
