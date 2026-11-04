@@ -1,10 +1,10 @@
 <!doctype html>
-<!-- GuestyLIVE · v1.18 -->
+<!-- GuestyLIVE · v1.19 -->
 <html lang="es-MX">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>GuestyLIVE v1.18</title>
+<title>GuestyLIVE v1.19</title>
 <meta name="theme-color" content="#F3F6F6" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0C1312" media="(prefers-color-scheme: dark)">
 <meta name="mobile-web-app-capable" content="yes">
@@ -433,7 +433,7 @@ main.col{padding-block:6px 48px;display:grid;grid-template-columns:minmax(0,1fr)
 
 <script>
 /* ============ CONFIGURACIÓN (edítala aquí) ============ */
-const APP_VERSION = '1.18';   // súbela en cada cambio
+const APP_VERSION = '1.19';   // súbela en cada cambio
 const CFG = {
   QPRE: { NQ:['No califica','stop'], NC:['No contactado','warn'], CO:['Contactado','acc'], Q:['Calificado','ok'], CT:['CT','own'] },
   QOUT: { NS:['No show','stop'], Q:['Calificó','ok'], QA:['Calificó A','ok'], QB:['Calificó B','ok'], CT:['CT','own'], CTG:['CTG','own'], NQ:['No calificó','stop'] },
@@ -1400,11 +1400,10 @@ function actTrack(r, k){
   const x = recOf(r); if (x && x.auto && !Object.keys(x.steps).length) delete ACT.recs[x.h];
   actSave();
 }
-// La invitación es tuya solo si: la marcaste tú en la app, dijiste "fue mía", o el comentario del CRM te nombra (OPEN FER / FER).
-// Un INV en el CRM sin esas señales es de alguien más y no entra en tus números.
-const recFirma = x => !!x.steps.INV || x.claim === true || (x.claim !== false && x.out.invBy === 'me');
+// La invitación es tuya solo si la marcaste tú (INV en la app) o la reclamaste en la ficha ("La invitación fue mía").
+// Un INV que solo viene del CRM no entra en tus números.
+const recFirma = x => !!x.steps.INV || x.claim === true;
 const recOtro = x => !recFirma(x) && !!x.out.INV;
-const invWho = x => x.out.invBy === 'otro' && x.out.invName ? title(x.out.invName) : '';
 const recAsis = x => recFirma(x) && !!(x.steps.SH || x.out.SH || (x.out.qout && x.out.qout !== 'NS'));
 const recVenta = x => recFirma(x) && !!x.out.contract;
 const recInter = x => !!(x.steps.INF || x.steps.RC || recFirma(x));
@@ -1418,9 +1417,9 @@ function abHTML(r){
     <div class="hint">Si marcas INF, RC, INV o NQ abajo, también cuenta como abordaje.</div>`;
   const st = [['Abordado', true], x.steps.NQ ? ['No califica', 'stop'] : ['Califica', true], ['Interesado', recInter(x)], ['Firma', recFirma(x)], ['Asistió', recAsis(x)], ['Venta', recVenta(x)]];
   let inv = '';
-  if (recOtro(x)) inv = `<div class="caution">El CRM dice INV, pero ${invWho(x) ? 'el caso es de <b>' + esc(invWho(x)) + '</b>' : 'no sé quién lo invitó'}: no cuenta en tus firmas.</div>
+  if (recOtro(x)) inv = `<div class="caution">El CRM dice INV, pero tú no lo marcaste: no cuenta en tus firmas.</div>
     <button class="btn soft sm" type="button" data-claim="1">La invitación fue mía</button>`;
-  else if (recFirma(x) && !x.steps.INV) inv = `<div class="noterow"><small>Invitación tuya ${x.claim === true ? '(lo dijiste tú)' : '(el CRM te nombra)'}</small><button class="btn soft sm" type="button" data-claim="0">No fue mía</button></div>`;
+  else if (x.claim === true && !x.steps.INV) inv = `<div class="noterow"><small>Invitación tuya (la reclamaste)</small><button class="btn soft sm" type="button" data-claim="0">No fue mía</button></div>`;
   const why = x.steps.NQ ? `<div class="sublbl">¿Por qué no califica?</div><div class="chiprow wrap">${CFG.NQ_WHY.map(([k,l]) => `<button type="button" class="fchip" data-why="${k}" aria-pressed="${x.steps.NQ.why===k}">${esc(l)}</button>`).join('')}</div>` : '';
   return `<h3>Abordaje</h3>
     <div class="prevcalls">${st.map(([l,v]) => `<span class="chip ${v === 'stop' ? 'stop' : v ? 'ok' : ''}">${v && v !== 'stop' ? '✓ ' : ''}${l}</span>`).join('')}</div>
@@ -1452,13 +1451,7 @@ function actReconcile(list){
   for (const x of Object.values(ACT.recs)){
     const r = by.get(x.h); if (!r) continue;
     const o = x.out, before = JSON.stringify(o);
-    if (r.INV){
-      o.INV = true;
-      const me = ' ' + title(CFG.ME), owners = tagsOf(r).filter(t => t[1] === 'own' && /^(Caso de|Abierto por) /.test(t[0])).map(t => t[0].replace(/^(Caso de|Abierto por) /, ''));
-      if (owners.some(n => (' ' + n).endsWith(me))) o.invBy = 'me';
-      else if (owners.length){ o.invBy = 'otro'; o.invName = owners[0] }
-      else o.invBy = 'nd';
-    }
+    if (r.INV) o.INV = true;
     if (r.SH) o.SH = true;
     if (r.qout) o.qout = r.qout;
     if (contractOK(r.contract)) o.contract = String(r.contract).trim();
@@ -1557,7 +1550,7 @@ function paintTurno(){
         ${fr('Califican', S.calif, S.n ? `${rate(S.calif, S.n)} de los abordados` : '')}
         ${fr('Interesados', S.inter, S.calif ? `${rate(S.inter, S.calif)} de los que califican · INF, RC o INV` : 'INF, RC o INV')}
         ${fr('Firmas', S.firm, S.calif ? `${rate(S.firm, S.calif)} de los que califican · ${rate(S.firm, S.inter)} de los interesados` : 'INV', 'key')}
-        ${S.otro ? fr('Invitados por otros', S.otro, 'Los abordaste, pero la invitación en el CRM no es tuya · no cuentan', 'sub') : ''}
+        ${S.otro ? fr('INV en CRM, no tuyos', S.otro, 'El CRM dice INV pero no lo marcaste tú · no cuentan (reclámalos en la ficha si fueron tuyos)', 'sub') : ''}
         ${fr('Asistieron', S.asis, S.firm ? `${rate(S.asis, S.firm)} de las firmas` : 'Llega con el CRM de los días siguientes')}
         ${fr('Ventas', S.venta, S.asis ? `${rate(S.venta, S.asis)} de los que asistieron` : 'CONTRACT en el CRM', 'key')}
       </div>
@@ -1579,12 +1572,12 @@ function paintTurno(){
       </div>
     </section>`;
   const list = S.recs.length ? `<section class="box"><h3>Tus abordados · ${S.recs.length}</h3><ul class="logl">${[...S.recs].sort((a,b) => b.at - a.at).slice(0, 200).map(x => {
-      const st = x.steps.NQ ? `<span class="chip stop">NQ${x.steps.NQ.why ? ' · ' + esc(whyName(x.steps.NQ.why)) : ''}</span>` : recVenta(x) ? '<span class="chip ok">Venta</span>' : recAsis(x) ? '<span class="chip ok">Asistió</span>' : recFirma(x) ? '<span class="chip ok">Firma</span>' : recOtro(x) ? `<span class="chip own">Inv. de ${esc(invWho(x) || 'otro')}</span>` : recInter(x) ? '<span class="chip acc">Interesado</span>' : '<span class="chip">Abordado</span>';
+      const st = x.steps.NQ ? `<span class="chip stop">NQ${x.steps.NQ.why ? ' · ' + esc(whyName(x.steps.NQ.why)) : ''}</span>` : recVenta(x) ? '<span class="chip ok">Venta</span>' : recAsis(x) ? '<span class="chip ok">Asistió</span>' : recFirma(x) ? '<span class="chip ok">Firma</span>' : recOtro(x) ? '<span class="chip own">INV en CRM, no tuya</span>' : recInter(x) ? '<span class="chip acc">Interesado</span>' : '<span class="chip">Abordado</span>';
       const o = x.orig.length ? `<span class="chip">${esc(origSort(x.orig).map(origName).join(' + '))}</span>` : '';
       return `<li class="logi" ${x.gid && BYID.has(x.gid) && !x.anon ? `data-recopen="${esc(x.gid)}" style="cursor:pointer"` : ''}><div class="tm"><b>${esc(x.room || '—')}</b>${hhmm(x.at)}</div><div class="who"><span class="name">${esc(x.anon ? 'Sin nombre (más de ' + CFG.CALLS_KEEP_DAYS + ' días)' : title(x.name || ''))}</span><span class="sub">${st}${o}</span></div><span></span></li>`;
     }).join('')}</ul></section>` : '';
   const tools = `<section class="box"><h3>Asistencias y ventas</h3>
-      <p class="hint">Cada vez que cargas el CRM del día, la app busca a tus abordados y lee INV, SH, Q.OUT y CONTRACT. Un INV del CRM solo cuenta como tuyo si tú lo marcaste, si el comentario te nombra, o si en la ficha dices "fue mía". Los que ya salieron del hotel no vienen en "en casa": para esos, carga aquí un reporte del CRM (mensual o el que tengas) y solo se cruza, no cambia tu lista del día.</p>
+      <p class="hint">Cada vez que cargas el CRM del día, la app busca a tus abordados y lee INV, SH, Q.OUT y CONTRACT. Un INV del CRM solo cuenta como tuyo si tú lo marcaste en la app o si en la ficha tocas "La invitación fue mía". Los que ya salieron del hotel no vienen en "en casa": para esos, carga aquí un reporte del CRM (mensual o el que tengas) y solo se cruza, no cambia tu lista del día.</p>
       <div class="blactions"><label class="btn soft sm" for="fileRep">Cruzar con reporte</label>${Object.keys(ACT.recs).length ? '<button class="btn soft sm" type="button" data-actcsv>Descargar CSV</button>' : ''}</div>
       <p class="hint">Después de ${CFG.CALLS_KEEP_DAYS} días los abordados se quedan sin nombre; los números se conservan. El respaldo de Pendientes también guarda este registro.</p>
     </section>`;
