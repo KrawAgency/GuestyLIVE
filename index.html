@@ -1,10 +1,10 @@
 <!doctype html>
-<!-- GuestyLIVE · v1.20 -->
+<!-- GuestyLIVE · v1.21 -->
 <html lang="es-MX">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>GuestyLIVE v1.20</title>
+<title>GuestyLIVE v1.21</title>
 <meta name="theme-color" content="#F3F6F6" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0C1312" media="(prefers-color-scheme: dark)">
 <meta name="mobile-web-app-capable" content="yes">
@@ -346,6 +346,13 @@ main.col{padding-block:6px 48px;display:grid;grid-template-columns:minmax(0,1fr)
 .barl b{font-variant-numeric:tabular-nums}
 .barl i{grid-column:1/-1;height:6px;border-radius:3px;background:var(--stop-soft);overflow:hidden;display:block}
 .barl i::before{content:"";display:block;height:100%;width:var(--w);background:var(--stop);border-radius:3px}
+.intbtn{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;padding:10px 14px;border-radius:14px;border:2px solid var(--line);background:var(--surface);color:var(--ink);font-weight:700;font-size:15.5px;text-align:left}
+.intbtn svg{width:22px;height:22px;color:var(--muted)}
+.intbtn span{display:grid;gap:1px}
+.intbtn small{font-weight:500;font-size:12.5px;color:var(--muted)}
+.intbtn[aria-pressed="true"]{background:var(--ok-soft);border-color:var(--ok);color:var(--ok)}
+.intbtn[aria-pressed="true"] svg{color:var(--ok)}
+.intbtn:disabled{cursor:default;opacity:.85}
 .caution{font-size:12.5px;color:var(--warn);background:var(--warn-soft);border-radius:12px;padding:8px 11px;font-weight:600}
 @media (max-width:440px){ .tabs button svg{display:none} .tabs button{font-size:14px} }
 
@@ -433,7 +440,7 @@ main.col{padding-block:6px 48px;display:grid;grid-template-columns:minmax(0,1fr)
 
 <script>
 /* ============ CONFIGURACIÓN (edítala aquí) ============ */
-const APP_VERSION = '1.20';   // súbela en cada cambio
+const APP_VERSION = '1.21';   // súbela en cada cambio
 const CFG = {
   QPRE: { NQ:['No califica','stop'], NC:['No contactado','warn'], CO:['Contactado','acc'], Q:['Calificado','ok'], CT:['CT','own'] },
   QOUT: { NS:['No show','stop'], Q:['Calificó','ok'], QA:['Calificó A','ok'], QB:['Calificó B','ok'], CT:['CT','own'], CTG:['CTG','own'], NQ:['No calificó','stop'] },
@@ -1071,6 +1078,7 @@ $('#sheetBody').addEventListener('click', async e => {
     if (x){ x.orig = nx; actSave() } else abDraft[r.id] = nx;
     paintAb(r); return }
   if (t.hasAttribute('data-ab') && r){ recEnsure(r, false); actSave(); paintAb(r); render(); toast('Abordaje registrado ' + hhmm(Date.now())); return }
+  if (t.hasAttribute('data-int') && r){ const x = recOf(r); if (x){ if (x.steps.INT) delete x.steps.INT; else x.steps.INT = {at:Date.now()}; actSave(); paintAb(r); render() } return }
   if (t.dataset.claim && r){ const x = recOf(r); if (x){ x.claim = t.dataset.claim === '1'; actSave(); paintAb(r); toast(x.claim ? 'Listo: cuenta como tu firma' : 'Listo: ya no cuenta como tuya') } return }
   if (t.dataset.why && r){ const x = recOf(r); if (x && x.steps.NQ){ x.steps.NQ.why = x.steps.NQ.why === t.dataset.why ? '' : t.dataset.why; actSave(); paintAb(r) } return }
   if (t.hasAttribute('data-abdel') && r){
@@ -1406,7 +1414,8 @@ const recFirma = x => !!x.steps.INV || x.claim === true;
 const recOtro = x => !recFirma(x) && !!x.out.INV;
 const recAsis = x => recFirma(x) && !!(x.steps.SH || x.out.SH || (x.out.qout && x.out.qout !== 'NS'));
 const recVenta = x => recFirma(x) && !!x.out.contract;
-const recInter = x => !!(x.steps.INF || x.steps.RC || recFirma(x));
+// Interesado lo decides tú con el botón; INF y RC no lo prenden. Con firma tuya (INV) se da por hecho.
+const recInter = x => !!(x.steps.INT || recFirma(x));
 
 function abHTML(r){
   const x = recOf(r), sel = x ? x.orig : (abDraft[r.id] || suggestOrig(r));
@@ -1421,9 +1430,11 @@ function abHTML(r){
     <button class="btn soft sm" type="button" data-claim="1">La invitación fue mía</button>`;
   else if (x.claim === true && !x.steps.INV) inv = `<div class="noterow"><small>Invitación tuya (la reclamaste)</small><button class="btn soft sm" type="button" data-claim="0">No fue mía</button></div>`;
   const why = x.steps.NQ ? `<div class="sublbl">¿Por qué no califica?</div><div class="chiprow wrap">${CFG.NQ_WHY.map(([k,l]) => `<button type="button" class="fchip" data-why="${k}" aria-pressed="${x.steps.NQ.why===k}">${esc(l)}</button>`).join('')}</div>` : '';
+  const firm = recFirma(x), intOn = recInter(x);
+  const intBtn = x.steps.NQ ? '' : `<button class="intbtn" type="button" data-int aria-pressed="${intOn}" ${firm ? 'disabled' : ''}>${intOn ? IC.yes : '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4.5" y="4.5" width="15" height="15" rx="4" stroke="currentColor" stroke-width="2"/></svg>'}<span>Está interesado<small>${firm ? 'Tiene tu INV: se da por hecho' : intOn ? 'Toca para quitar' : 'Márcalo tú; INF y RC no cuentan como interés'}</small></span></button>`;
   return `<h3>Abordaje</h3>
     <div class="prevcalls">${st.map(([l,v]) => `<span class="chip ${v === 'stop' ? 'stop' : v ? 'ok' : ''}">${v && v !== 'stop' ? '✓ ' : ''}${l}</span>`).join('')}</div>
-    ${inv}${why}
+    ${intBtn}${inv}${why}
     <div class="sublbl">¿Cómo llegó a ti?</div>${orig}
     <div class="noterow"><small>Abordado ${x.day === dayKey() ? 'hoy' : esc(fmtDay(x.day))} ${hhmm(x.at)}${x.auto ? ' · contó al marcar' : ''}</small><button class="btn danger sm" type="button" data-abdel>Quitar abordaje</button></div>`;
 }
@@ -1548,7 +1559,7 @@ function paintTurno(){
         ${fr('Abordados', S.n, S.disp ? `${rate(S.n, S.disp)} de los disponibles` : '')}
         ${fr('No califican', S.nq, S.n ? `${rate(S.nq, S.n)} de los abordados` : '', 'sub')}
         ${fr('Califican', S.calif, S.n ? `${rate(S.calif, S.n)} de los abordados` : '')}
-        ${fr('Interesados', S.inter, S.calif ? `${rate(S.inter, S.calif)} de los que califican · INF, RC o INV` : 'INF, RC o INV')}
+        ${fr('Interesados', S.inter, S.calif ? `${rate(S.inter, S.calif)} de los que califican · marcados por ti o con tu INV` : 'Marcados por ti o con tu INV')}
         ${fr('Firmas', S.firm, S.calif ? `${rate(S.firm, S.calif)} de los que califican · ${rate(S.firm, S.inter)} de los interesados` : 'INV', 'key')}
         ${S.otro ? fr('INV en CRM, no tuyos', S.otro, 'El CRM dice INV pero no lo marcaste tú · no cuentan (reclámalos en la ficha si fueron tuyos)', 'sub') : ''}
         ${fr('Asistieron', S.asis, S.firm ? `${rate(S.asis, S.firm)} de las firmas` : 'Llega con el CRM de los días siguientes')}
@@ -1584,10 +1595,10 @@ function paintTurno(){
   m.innerHTML = head + per + rates + funnel + why + org + misc + list + tools;
 }
 function actCSV(){
-  const out = [['fecha','hora','habitacion','nombre','origen','no_califica','motivo','informado','cupon','firma','asistio','q_out','contrato']];
+  const out = [['fecha','hora','habitacion','nombre','origen','no_califica','motivo','informado','cupon','interesado','firma','asistio','q_out','contrato']];
   for (const x of Object.values(ACT.recs).sort((a,b) => a.at - b.at))
     out.push([x.day, hhmm(x.at), x.room || '', x.anon ? '' : title(x.name || ''), origSort(x.orig).map(origName).join(' + '), x.steps.NQ ? 'Sí' : '', x.steps.NQ ? whyName(x.steps.NQ.why || 'SIN') : '',
-      x.steps.INF ? 'Sí' : '', x.steps.RC ? 'Sí' : '', recFirma(x) ? 'Sí' : '', recAsis(x) ? 'Sí' : '', x.out.qout || '', x.out.contract || '']);
+      x.steps.INF ? 'Sí' : '', x.steps.RC ? 'Sí' : '', recInter(x) ? 'Sí' : '', recFirma(x) ? 'Sí' : '', recAsis(x) ? 'Sí' : '', x.out.qout || '', x.out.contract || '']);
   const csv = out.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['﻿' + csv], {type:'text/csv'})); a.download = `turno-guestylive-${dayKey()}.csv`;
   document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove() }, 1000);
