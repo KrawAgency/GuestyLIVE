@@ -1,10 +1,10 @@
 <!doctype html>
-<!-- GuestyLIVE · v1.22 -->
+<!-- GuestyLIVE · v1.23 -->
 <html lang="es-MX">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>GuestyLIVE v1.22</title>
+<title>GuestyLIVE v1.23</title>
 <meta name="theme-color" content="#F3F6F6" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0C1312" media="(prefers-color-scheme: dark)">
 <meta name="mobile-web-app-capable" content="yes">
@@ -440,7 +440,7 @@ main.col{padding-block:6px 48px;display:grid;grid-template-columns:minmax(0,1fr)
 
 <script>
 /* ============ CONFIGURACIÓN (edítala aquí) ============ */
-const APP_VERSION = '1.22';   // súbela en cada cambio
+const APP_VERSION = '1.23';   // súbela en cada cambio
 const CFG = {
   QPRE: { NQ:['No califica','stop'], NC:['No contactado','warn'], CO:['Contactado','acc'], Q:['Calificado','ok'], CT:['CT','own'] },
   QOUT: { NS:['No show','stop'], Q:['Calificó','ok'], QA:['Calificó A','ok'], QB:['Calificó B','ok'], CT:['CT','own'], CTG:['CTG','own'], NQ:['No calificó','stop'] },
@@ -616,11 +616,13 @@ const IC = {
 };
 
 /* ---------- Fechas ---------- */
-function toISO(v){
+// order: 'dmy' (10/07 = 10 de julio) o 'mdy' (10/07 = 7 de octubre). Se detecta por archivo en dateOrder().
+function toISO(v, order = 'dmy'){
   if (v instanceof Date && !isNaN(v)) return dayKey(v);
+  if (typeof v === 'number' && v > 20000 && v < 80000){ const d = new Date(Math.round((v - 25569) * 864e5)); return `${d.getUTCFullYear()}-${pad(d.getUTCMonth()+1)}-${pad(d.getUTCDate())}` }
   const s = String(v||'').trim(); if (!s) return '';
-  let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
-  if (m){ const y = m[3].length===2 ? '20'+m[3] : m[3]; return `${y}-${pad(m[2])}-${pad(m[1])}` }
+  let m = s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})/);
+  if (m){ const y = m[3].length===2 ? '20'+m[3] : m[3], [d, mo] = order === 'mdy' ? [m[2], m[1]] : [m[1], m[2]]; return `${y}-${pad(mo)}-${pad(d)}` }
   m = s.match(/^(\d{4})-(\d{2})-(\d{2})/); if (m) return `${m[1]}-${m[2]}-${m[3]}`;
   return '';
 }
@@ -634,13 +636,27 @@ const fmtDay = iso => iso ? isoDate(iso).toLocaleDateString('es-MX',{weekday:'sh
 const COLS = {id:'#',name:'NAME',room:'ROOM',in:'IN',out:'OUT',country:'COUNTRY',agency:'AGENCY',group:'GROUP',market:'MARKET',resv:'RESV NO.',memb:'MEMB ID',ad:'ADULTS',ch:'CHILDREN',AVL:'AVL',INF:'INF',RC:'RC',INV:'INV',SH:'SH',sroom:'S.ROOM',tour:'TOUR DATE',contract:'CONTRACT',qpre:'Q.PRE',qout:'Q.OUT',cmt:'COMMENTS'};
 const BOOL = ['AVL','INF','RC','INV','SH'];
 
+// ¿El archivo trae las fechas como día/mes o mes/día? Si algún valor pasa de 12 se sabe seguro;
+// si no, gana el orden con el que más estancias tienen sentido (llegada ≤ salida, estancia corta, cerca de hoy).
+function dateOrder(pairs){
+  let dmy = 0, mdy = 0;
+  for (const p of pairs) for (const v of p){
+    const m = String(v ?? '').trim().match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-]\d{2,4}/); if (!m) continue;
+    if (+m[1] > 12) dmy++; if (+m[2] > 12) mdy++;
+  }
+  if (dmy !== mdy) return dmy > mdy ? 'dmy' : 'mdy';
+  const today = dayKey(), score = o => pairs.filter(([a,b]) => { const i = toISO(a,o), x = toISO(b,o);
+    return i && x && i <= x && diffDays(i, x) <= 45 && Math.abs(diffDays(i, today)) <= 60 }).length;
+  return score('mdy') > score('dmy') ? 'mdy' : 'dmy';
+}
 function parseSheet(aoa){
   const hi = aoa.findIndex(r => r && r.some(c => norm(c)==='NAME') && r.some(c => norm(c)==='ROOM'));
   if (hi < 0) throw new Error('No encontré las columnas NAME y ROOM. ¿Es el export del CRM?');
   const hdr = aoa[hi].map(norm), idx = {};
   for (const [k,h] of Object.entries(COLS)) idx[k] = hdr.indexOf(h);
-  const out = [];
-  for (const r of aoa.slice(hi+1)){
+  const out = [], body = aoa.slice(hi+1).filter(Boolean);
+  const order = dateOrder(body.map(r => [idx.in < 0 ? '' : r[idx.in], idx.out < 0 ? '' : r[idx.out]]));
+  for (const r of body){
     if (!r) continue;
     const g = k => idx[k] < 0 ? '' : r[idx[k]];
     const s = k => String(g(k) ?? '').trim();
@@ -648,10 +664,10 @@ function parseSheet(aoa){
     if (!name && !room) continue;
     const o = {
       id: s('id') || (room+'|'+name), name, room,
-      in: toISO(g('in')), out: toISO(g('out')),
+      in: toISO(g('in'), order), out: toISO(g('out'), order),
       country: s('country'), agency: s('agency'), group: s('group'), market: s('market'),
       resv: s('resv'), memb: s('memb'), ad: s('ad'), ch: s('ch'),
-      sroom: s('sroom'), tour: toISO(g('tour')), contract: s('contract'),
+      sroom: s('sroom'), tour: toISO(g('tour'), order), contract: s('contract'),
       qpre: norm(g('qpre')), qout: norm(g('qout')), cmt: s('cmt'),
     };
     for (const b of BOOL){ const v = g(b); o[b] = v === true || norm(v) === 'TRUE' }
@@ -668,7 +684,7 @@ async function readFiles(fileList, append){
   const added = [];
   try{
     for (const f of files){
-      const wb = XLSX.read(await f.arrayBuffer(), {type:'array', cellDates:true});
+      const wb = XLSX.read(await f.arrayBuffer(), {type:'array', cellDates:true, raw:true});
       const aoa = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header:1, defval:'', raw:true});
       const rows = parseSheet(aoa);
       rows.forEach(r => map.set(r.id, r));
@@ -679,7 +695,7 @@ async function readFiles(fileList, append){
   DATA = base; DEMO = false; filter = null; closeSheet(true);
   for (const [id,it] of Object.entries(BL.items)) if (it.demo) delete BL.items[id]; blSave();
   for (const [h,x] of Object.entries(ACT.recs)) if (x.demo) delete ACT.recs[h];
-  actReconcile(base.rows); actSnapshot(); actSave();
+  actReconcile(base.rows); actSnapshot(!append); actSave();
   if (!store.set(KEY, JSON.stringify(DATA))) toast('Cargado, pero este navegador no deja guardarlo: si se cierra tendrás que volver a cargar.');
   else toast(`Listo: ${base.rows.length} huéspedes cargados`);
   index(); setQ(''); render(); paintCalls();
@@ -1448,9 +1464,9 @@ function availableToday(r){
   const me = ' ' + title(CFG.ME);
   return !tagsOf(r).some(([l,k]) => k === 'stop' || (k === 'own' && !l.endsWith(me)));
 }
-function actSnapshot(){
+function actSnapshot(fresh){
   if (DEMO || !DATA) return;
-  const d = dayKey(), ids = new Set(ACT.snaps[d] ? ACT.snaps[d].ids : []);
+  const d = dayKey(), ids = new Set(!fresh && ACT.snaps[d] ? ACT.snaps[d].ids : []);
   for (const r of rows()) if (availableToday(r)) ids.add(guestKey(r));
   ACT.snaps[d] = {ids:[...ids], at:Date.now()};
 }
@@ -1475,7 +1491,7 @@ async function reportLoad(fileList){
   let all = [];
   try{
     for (const f of fileList){
-      const wb = XLSX.read(await f.arrayBuffer(), {type:'array', cellDates:true});
+      const wb = XLSX.read(await f.arrayBuffer(), {type:'array', cellDates:true, raw:true});
       all = all.concat(parseSheet(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header:1, defval:'', raw:true})));
     }
   }catch(e){ toast(e.message || 'No pude leer el reporte.'); return }
