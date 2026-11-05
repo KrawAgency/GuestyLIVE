@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>GuestyLIVE v1.27</title>
+<title>GuestyLIVE v1.28</title>
 <meta name="theme-color" content="#F3F6F6" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0C1312" media="(prefers-color-scheme: dark)">
 <meta name="mobile-web-app-capable" content="yes">
@@ -26,6 +26,7 @@
   --accent:#0E7C74; --accent-ink:#FFFFFF; --accent-soft:#DCF1EE;
   --stop:#C64B30; --stop-soft:#FCE8E2; --warn:#A86B12; --warn-soft:#FBF0DA;
   --ok:#21804D; --ok-soft:#DFF3E7; --live:#E5483B; --own:#5747BF; --own-soft:#ECE9FC;
+  --grp:#1F5BD8; --grp-ink:#FFFFFF;
   --shadow:0 1px 2px rgba(16,44,40,.05),0 6px 18px rgba(16,44,40,.07);
   --shadow-lg:0 -10px 40px rgba(16,44,40,.18);
   --scrim:rgba(10,24,22,.38);
@@ -39,6 +40,7 @@
   --accent:#4BC9BC; --accent-ink:#04201D; --accent-soft:#143633;
   --stop:#FF917A; --stop-soft:#3A201A; --warn:#F0BA62; --warn-soft:#33291A;
   --ok:#72D6A2; --ok-soft:#16301F; --live:#FF7466; --own:#B9AEFF; --own-soft:#27224B;
+  --grp:#3D7BFF; --grp-ink:#FFFFFF;
   --shadow:0 1px 0 rgba(0,0,0,.35); --shadow-lg:0 -10px 40px rgba(0,0,0,.5); --scrim:rgba(0,0,0,.55);
   color-scheme:dark }}
 :root[data-theme="dark"]{
@@ -46,6 +48,7 @@
   --accent:#4BC9BC; --accent-ink:#04201D; --accent-soft:#143633;
   --stop:#FF917A; --stop-soft:#3A201A; --warn:#F0BA62; --warn-soft:#33291A;
   --ok:#72D6A2; --ok-soft:#16301F; --live:#FF7466; --own:#B9AEFF; --own-soft:#27224B;
+  --grp:#3D7BFF; --grp-ink:#FFFFFF;
   --shadow:0 1px 0 rgba(0,0,0,.35); --shadow-lg:0 -10px 40px rgba(0,0,0,.5); --scrim:rgba(0,0,0,.55);
   color-scheme:dark }
 
@@ -160,7 +163,7 @@ main.col{padding-block:6px 48px;display:grid;grid-template-columns:minmax(0,1fr)
 .chip.ok{background:var(--ok-soft);color:var(--ok)}
 .chip.own{background:var(--own-soft);color:var(--own)}
 .chip.acc{background:var(--accent-soft);color:var(--accent)}
-.chip.grp{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--muted)}
+.chip.grp{background:var(--grp);color:var(--grp-ink);letter-spacing:.06em;font-weight:800}
 .chip.uvc{background:var(--own);color:var(--bg);letter-spacing:.06em;font-weight:800}
 
 .empty{background:var(--surface);border-radius:18px;padding:26px 18px;text-align:center;color:var(--muted);box-shadow:var(--shadow)}
@@ -191,6 +194,15 @@ main.col{padding-block:6px 48px;display:grid;grid-template-columns:minmax(0,1fr)
 .shead h2{margin:0;font-family:var(--f-display);font-weight:700;font-size:22px;line-height:1.15;letter-spacing:-.01em;overflow-wrap:anywhere;text-wrap:balance}
 .shead p{margin:3px 0 0;color:var(--muted);font-size:14px}
 .stayline{display:flex;flex-wrap:wrap;gap:6px}
+.alertline{display:flex;flex-wrap:wrap;gap:8px}
+.alertline .chip{font-size:16px;padding:10px 14px;border-radius:12px;letter-spacing:.02em}
+.alertline .chip.grp small{font-weight:600;letter-spacing:0;opacity:.85;font-size:13px}
+.chip.hot{background:var(--warn);color:var(--bg);font-weight:800}
+.verify{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border-radius:14px;overflow:hidden}
+.verify div{background:var(--surface);padding:10px 12px;min-width:0}
+.verify small{display:block;color:var(--muted);font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.verify b{display:block;font-size:16.5px;line-height:1.25;margin-top:2px;overflow-wrap:anywhere}
+.notesep{height:1px;background:var(--line);margin:14px 0 12px}
 .stayline .chip{font-size:13px;padding:7px 11px}
 
 .box{background:var(--surface);border-radius:20px;padding:16px;box-shadow:var(--shadow);display:grid;gap:14px}
@@ -447,7 +459,7 @@ main.col{padding-block:6px 48px;display:grid;grid-template-columns:minmax(0,1fr)
 
 <script>
 /* ============ CONFIGURACIÓN (edítala aquí) ============ */
-const APP_VERSION = '1.27';   // súbela en cada cambio
+const APP_VERSION = '1.28';   // súbela en cada cambio
 const CFG = {
   QPRE: { NQ:['No califica','stop'], NC:['No contactado','warn'], CO:['Contactado','acc'], Q:['Calificado','ok'], CT:['CT','own'] },
   QOUT: { NS:['No show','stop'], Q:['Calificó','ok'], QA:['Calificó A','ok'], QB:['Calificó B','ok'], CT:['CT','own'], CTG:['CTG','own'], NQ:['No calificó','stop'] },
@@ -911,9 +923,12 @@ function sheetHTML(r){
   const s = stay(r), tg = tagsOf(r), L = linked(r), qo = CFG.QOUT[r.qout];
   const pax = [r.ad && `${r.ad} adulto${r.ad==='1'?'':'s'}`, r.ch && r.ch!=='0' && `${r.ch} niño${r.ch==='1'?'':'s'}`].filter(Boolean).join(' · ');
   const sub = [pax, country(r)].filter(Boolean).join(' · ');
-  const stayChips = [];
-  if (isUVC(r)) stayChips.push(UVC_CHIP);
-  if (s.label) stayChips.push(`<span class="chip ${s.kind}">${esc(s.label)}</span>`);
+  const stayChips = [], alerts = [];
+  if (s.label === 'Sale mañana' || s.label === 'Sale hoy') alerts.push(`<span class="chip hot">${esc(s.label)}</span>`);
+  if (isGRP(r)) alerts.push(`<span class="chip grp">GRP${r.group ? ` <small>· ${esc(title(r.group))}</small>` : ''}</span>`);
+  if (isUVC(r)) alerts.push(UVC_CHIP);
+  if (s.label && !(s.label === 'Sale mañana' || s.label === 'Sale hoy')) stayChips.push(`<span class="chip ${s.kind}">${esc(s.label)}</span>`);
+  const arrTxt = r.in ? (r.in === dayKey() ? 'Hoy' : fmtDay(r.in)) : '—';
   if (s.total) stayChips.push(`<span class="chip">Noche ${Math.max(1,Math.min(s.n,s.total))} de ${s.total}</span>`);
   if (r.out && r.out !== dayKey()) stayChips.push(`<span class="chip">Sale ${fmtDay(r.out)}</span>`);
 
@@ -948,20 +963,16 @@ function sheetHTML(r){
       ${tagHTML(r.room)}
       <div><h2>${esc(title(r.name))}</h2>${sub ? `<p>${esc(sub)}</p>` : ''}</div>
     </div>
+    ${alerts.length ? `<div class="alertline">${alerts.join('')}</div>` : ''}
+    <div class="verify"><div><small>Agencia</small><b>${esc(title(r.agency) || '—')}</b></div><div><small>${r.in && r.in > dayKey() ? 'Llega' : 'Llegó'}</small><b>${esc(arrTxt)}</b></div></div>
     ${stayChips.length ? `<div class="stayline">${stayChips.join('')}</div>` : ''}
     <div class="noterow"><small>${(() => { const p = callsFor(r.id); return p.length ? `Llamadas hoy: ${p.map(c => hhmm(c.at) + ' ' + esc(callLabel(c))).join(' · ')}` : 'Sin llamadas hoy' })()}</small><button class="btn sm" type="button" data-callopen="${esc(r.id)}">${PH.replace('<svg','<svg width="18" height="18"')}Registrar llamada</button></div>
 
     <section class="box" id="stbox">${statusHTML(r)}</section>
+    <section class="box" id="notebox">${noteHTML(r)}</section>
     <section class="box" id="abbox">${abHTML(r)}</section>
     ${tour.length ? `<section class="box"><h3>Tour</h3><dl class="kv">${tour.map(([k,v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl></section>` : ''}
 
-    <section class="box" id="notebox">${noteHTML(r)}</section>
-
-    <section class="box">
-      <h3>Nota del equipo</h3>
-      <div class="bubble${r.cmt?'':' none'}">${r.cmt ? esc(r.cmt) : 'Nadie ha dejado comentarios.'}</div>
-      ${tg.length ? `<div class="tags">${tg.map(([l,k]) => `<span class="chip ${k==='info'?'':k}">${esc(l)}</span>`).join('')}</div>` : ''}
-    </section>
 
     ${links.length || dup.length ? `<section class="box"><h3>Viaja con</h3>
       ${links.length ? `<div class="links">${links.join('')}</div>` : ''}
@@ -989,8 +1000,13 @@ function statusHTML(r){
     <div class="hint">${any ? 'Lo marcado en <b>morado</b> lo cambiaste tú y está en Pendientes. Tócalo otra vez para regresarlo a como está en el CRM.' : 'Toca un indicador para marcarlo. Se guarda en Pendientes y no toca el CRM.'}</div>`;
 }
 function noteHTML(r){
-  const n = BL.items[r.id]?.changes?.note;
-  return `<h3>Tu nota</h3>
+  const n = BL.items[r.id]?.changes?.note, tg = tagsOf(r);
+  return `<h3>Notas</h3>
+    <div class="sublbl">Del equipo (CRM)</div>
+    <div class="bubble${r.cmt?'':' none'}">${r.cmt ? esc(r.cmt) : 'Nadie ha dejado comentarios.'}</div>
+    ${tg.length ? `<div class="tags">${tg.map(([l,k]) => `<span class="chip ${k==='info'?'':k}">${esc(l)}</span>`).join('')}</div>` : ''}
+    <div class="notesep"></div>
+    <div class="sublbl">Tu nota</div>
     <textarea id="note" placeholder="Ej. Le di cupones de spa, regresa mañana 10 am con su esposa">${esc(n ? n.to : '')}</textarea>
     <div class="noterow"><small>${n ? 'Guardada '+hhmm(n.at)+' · en Pendientes' : 'Se guarda en Pendientes para pasarla al CRM'}</small><button class="btn sm own" type="button" data-savenote>Guardar nota</button></div>`;
 }
