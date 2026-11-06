@@ -1,10 +1,10 @@
 <!doctype html>
-<!-- GuestyLIVE · v1.30 -->
+<!-- GuestyLIVE · v1.31 -->
 <html lang="es-MX">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>GuestyLIVE v1.30</title>
+<title>GuestyLIVE v1.31</title>
 <meta name="theme-color" content="#F3F6F6" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0C1312" media="(prefers-color-scheme: dark)">
 <meta name="mobile-web-app-capable" content="yes">
@@ -26,7 +26,7 @@
   --accent:#0E7C74; --accent-ink:#FFFFFF; --accent-soft:#DCF1EE;
   --stop:#C64B30; --stop-soft:#FCE8E2; --warn:#A86B12; --warn-soft:#FBF0DA;
   --ok:#21804D; --ok-soft:#DFF3E7; --live:#E5483B; --own:#5747BF; --own-soft:#ECE9FC;
-  --grp:#1F5BD8; --grp-ink:#FFFFFF;
+  --grp:#1F5BD8; --grp-ink:#FFFFFF; --mice:#D6246E; --mice-ink:#FFFFFF;
   --shadow:0 1px 2px rgba(16,44,40,.05),0 6px 18px rgba(16,44,40,.07);
   --shadow-lg:0 -10px 40px rgba(16,44,40,.18);
   --scrim:rgba(10,24,22,.38);
@@ -40,7 +40,7 @@
   --accent:#4BC9BC; --accent-ink:#04201D; --accent-soft:#143633;
   --stop:#FF917A; --stop-soft:#3A201A; --warn:#F0BA62; --warn-soft:#33291A;
   --ok:#72D6A2; --ok-soft:#16301F; --live:#FF7466; --own:#B9AEFF; --own-soft:#27224B;
-  --grp:#3D7BFF; --grp-ink:#FFFFFF;
+  --grp:#3D7BFF; --grp-ink:#FFFFFF; --mice:#F0408A; --mice-ink:#FFFFFF;
   --shadow:0 1px 0 rgba(0,0,0,.35); --shadow-lg:0 -10px 40px rgba(0,0,0,.5); --scrim:rgba(0,0,0,.55);
   color-scheme:dark }}
 :root[data-theme="dark"]{
@@ -48,7 +48,7 @@
   --accent:#4BC9BC; --accent-ink:#04201D; --accent-soft:#143633;
   --stop:#FF917A; --stop-soft:#3A201A; --warn:#F0BA62; --warn-soft:#33291A;
   --ok:#72D6A2; --ok-soft:#16301F; --live:#FF7466; --own:#B9AEFF; --own-soft:#27224B;
-  --grp:#3D7BFF; --grp-ink:#FFFFFF;
+  --grp:#3D7BFF; --grp-ink:#FFFFFF; --mice:#F0408A; --mice-ink:#FFFFFF;
   --shadow:0 1px 0 rgba(0,0,0,.35); --shadow-lg:0 -10px 40px rgba(0,0,0,.5); --scrim:rgba(0,0,0,.55);
   color-scheme:dark }
 
@@ -164,6 +164,7 @@ main.col{padding-block:6px 48px;display:grid;grid-template-columns:minmax(0,1fr)
 .chip.own{background:var(--own-soft);color:var(--own)}
 .chip.acc{background:var(--accent-soft);color:var(--accent)}
 .chip.grp{background:var(--grp);color:var(--grp-ink);letter-spacing:.06em;font-weight:800}
+.chip.mice{background:var(--mice);color:var(--mice-ink);letter-spacing:.06em;font-weight:800}
 .chip.uvc{background:var(--own);color:var(--bg);letter-spacing:.06em;font-weight:800}
 
 .empty{background:var(--surface);border-radius:18px;padding:26px 18px;text-align:center;color:var(--muted);box-shadow:var(--shadow)}
@@ -475,7 +476,7 @@ function fitUI(){
 fitUI(); addEventListener('resize', () => { if (fitUI() && typeof fitWrap === 'function') fitWrap() });
 
 /* ============ CONFIGURACIÓN (edítala aquí) ============ */
-const APP_VERSION = '1.30';   // súbela en cada cambio
+const APP_VERSION = '1.31';   // súbela en cada cambio
 const CFG = {
   QPRE: { NQ:['No califica','stop'], NC:['No contactado','warn'], CO:['Contactado','acc'], Q:['Calificado','ok'], CT:['CT','own'] },
   QOUT: { NS:['No show','stop'], Q:['Calificó','ok'], QA:['Calificó A','ok'], QB:['Calificó B','ok'], CT:['CT','own'], CTG:['CTG','own'], NQ:['No calificó','stop'] },
@@ -772,6 +773,7 @@ const isCRAgency = r => { const a = norm(r.agency); return CFG.AGENCY_CR.some(re
 // Q.PRE base: MICE sin trabajar (vacío o NC) se lee como NQ; si el CRM ya dice CO/Q/CT se respeta
 const qBase = r => isMICE(r) && (!r.qpre || r.qpre === 'NC') ? 'NQ' : r.qpre;
 const UVC_CHIP = '<span class="chip uvc">UVC</span>';
+const MICE_CHIP = '<span class="chip mice" title="Agencia MICE · no contactar">MICE</span>';
 // Grupo: columna GROUP, folio que empieza con G, GRP/GRPNC en el comentario, o agencia MICE
 const isGRP = r => !!r.group || /^G/i.test(r.resv) || /\bGRP(NC)?\b/.test(norm(r.cmt)) || isMICE(r);
 const grpChip = r => isGRP(r) ? `<span class="chip grp"${r.group ? ` title="${esc(title(r.group))}"` : ''}>GRP</span>` : '';
@@ -857,6 +859,7 @@ function cardHTML(r, q){
   if (isUVC(r)) chips.push(UVC_CHIP);
   if (s.label) chips.push(`<span class="chip ${s.kind}">${esc(s.label)}</span>`);
   if (qcode) chips.push(`<span class="chip ${qp ? qp[1] : ''}">${esc(qcode)}</span>`);
+  if (isMICE(r)) chips.push(MICE_CHIP);
   if (isGRP(r)) chips.push(grpChip(r));
   if (r.memb) chips.push(`<span class="chip own">★ ${esc(level(r.memb) || 'Socio')}</span>`);
   if (eff(r,'INV')) chips.push(`<span class="chip own">Invitado</span>`);
@@ -941,6 +944,7 @@ function sheetHTML(r){
   const sub = [pax, country(r)].filter(Boolean).join(' · ');
   const stayChips = [], alerts = [];
   if (s.label === 'Sale mañana' || s.label === 'Sale hoy') alerts.push(`<span class="chip hot">${esc(s.label)}</span>`);
+  if (isMICE(r)) alerts.push(MICE_CHIP);
   if (isGRP(r)) alerts.push(`<span class="chip grp">GRP${r.group ? ` <small>· ${esc(title(r.group))}</small>` : ''}</span>`);
   if (isUVC(r)) alerts.push(UVC_CHIP);
   if (s.label && !(s.label === 'Sale mañana' || s.label === 'Sale hoy')) stayChips.push(`<span class="chip ${s.kind}">${esc(s.label)}</span>`);
@@ -1208,7 +1212,7 @@ const CALL_KEY = 'guestylive_llamadas', QF_KEY = 'guestylive_filtros_llamadas';
 const ANS = { si:'Contestaron', no:'No contestó', ocu:'Ocupado / buzón' };
 const RES = { WBD:['WBD','ok'], COLG:['Colgaron','stop'], NOINT:['No interés','stop'], INFO:['Ya tenía info','warn'], LATER:['Llamar después','own'] };
 let CALLS = [], callView = 'queue', callArr = null;
-let QF = {nc:true, co:false, hideStop:true, hideOwn:true, hideDep:false, hideArr:false, hideGrp:false};
+let QF = {nc:true, co:false, hideStop:true, hideOwn:true, hideDep:false, hideTom:false, hideArr:false, hideGrp:false};
 let qfOpen = false;
 function callsLoad(){
   let raw = null; try{ raw = JSON.parse(store.get(CALL_KEY) || 'null') }catch(e){}
@@ -1247,12 +1251,13 @@ function addCall(r, ans, res, note){
 }
 let QHID = {};   // por qué se quedó fuera cada huésped de la lista (para que se vea)
 function queue(){
-  const today = dayKey(), H = QHID = {gone:0, dep:0, arr:0, grp:0, stop:0, own:0, done:0};
+  const today = dayKey(), tom = dayKey(new Date(Date.now() + 864e5)), H = QHID = {gone:0, dep:0, tom:0, arr:0, grp:0, stop:0, own:0, done:0};
   return rows().filter(r => {
     const q = eff(r,'qpre');
     if (!((QF.nc && q === 'NC') || (QF.co && q === 'CO'))) return false;
     if (r.out && r.out < today){ H.gone++; return false }
     if (QF.hideDep && r.out === today){ H.dep++; return false }
+    if (QF.hideTom && r.out === tom){ H.tom++; return false }
     if (QF.hideArr && r.in === today){ H.arr++; return false }
     if (QF.hideGrp && isGRP(r)){ H.grp++; return false }
     const tg = tagsOf(r);
@@ -1294,7 +1299,7 @@ function paintCalls(){
         ${days.map(d => `<button class="dchip" type="button" data-cd="${d}" aria-pressed="${callArr===d}"><small>${d === dayKey() ? 'hoy' : esc(fmtWd(d))}</small>${esc(fmtShort(d))}<small>${cnt.get(d)} huésp.</small></button>`).join('')}
       </div></div>` : '';
     const chip = (k, l) => `<button class="fchip" type="button" data-qf="${k}" aria-pressed="${!!QF[k]}">${l}</button>`;
-    const HIDES = [['hideStop','Rojos (no califican)'],['hideOwn','Con dueño'],['hideGrp','Grupos (GRP)'],['hideDep','Salen hoy'],['hideArr','Llegan hoy']];
+    const HIDES = [['hideStop','Rojos (no califican)'],['hideOwn','Con dueño'],['hideGrp','Grupos (GRP)'],['hideDep','Salen hoy'],['hideTom','Salen mañana'],['hideArr','Llegan hoy']];
     const shown = [QF.nc && 'NC', QF.co && 'CO'].filter(Boolean).join(' + ') || 'nadie';
     const hid = HIDES.filter(([k]) => QF[k]).map(([,l]) => l.split(' (')[0].toLowerCase());
     body = `<button class="qfbar" type="button" data-qfopen aria-expanded="${qfOpen}">
@@ -1307,7 +1312,7 @@ function paintCalls(){
       </section>` : ''}
       ${dates}
       ${staleHTML()}
-      ${(() => { const h = QHID, parts = [h.stop && `${h.stop} rojos`, h.own && `${h.own} con dueño`, h.dep && `${h.dep} salen hoy`, h.arr && `${h.arr} llegan hoy`, h.grp && `${h.grp} grupos`, h.done && `${h.done} ya llamados hoy`, h.gone && `${h.gone} ya salieron (fecha de salida pasada)`].filter(Boolean);
+      ${(() => { const h = QHID, parts = [h.stop && `${h.stop} rojos`, h.own && `${h.own} con dueño`, h.dep && `${h.dep} salen hoy`, h.tom && `${h.tom} salen mañana`, h.arr && `${h.arr} llegan hoy`, h.grp && `${h.grp} grupos`, h.done && `${h.done} ya llamados hoy`, h.gone && `${h.gone} ya salieron (fecha de salida pasada)`].filter(Boolean);
         return parts.length ? `<p class="hint">Ocultos: ${parts.join(' · ')}</p>` : '' })()}
       <div class="meta"><span>${Q.length} por llamar${callArr ? ' · llegó ' + (callArr === dayKey() ? 'hoy' : esc(fmtShort(callArr))) : ''}</span></div>
       <ul class="results">${Q.slice(0, 300).map(r => {
@@ -1317,6 +1322,7 @@ function paintCalls(){
         if (cs.n) chips.push(`<span class="chip warn">${cs.n} intento${cs.n===1?'':'s'} · ${hhmm(cs.last.at)}</span>`);
         if (s.label) chips.push(`<span class="chip ${s.kind}">${esc(s.label)}</span>`);
         const q = eff(r,'qpre'); if (q) chips.push(`<span class="chip ${CFG.QPRE[q] ? CFG.QPRE[q][1] : ''}">${esc(q)}</span>`);
+        if (isMICE(r)) chips.push(MICE_CHIP);
         if (isGRP(r)) chips.push(grpChip(r));
         if (r.memb) chips.push(`<span class="chip own">★ ${esc(level(r.memb) || 'Socio')}</span>`);
         return `<li><button class="card" type="button" data-call="${esc(r.id)}">${tagHTML(r.room)}<span class="who"><span class="name">${esc(title(r.name))}</span><span class="sub">${chips.join('')}</span></span><span class="ph">${PH}</span></button></li>`;
