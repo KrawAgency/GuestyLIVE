@@ -1,10 +1,10 @@
 <!doctype html>
-<!-- GuestyLIVE · v1.27 -->
+<!-- GuestyLIVE · v1.30 -->
 <html lang="es-MX">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>GuestyLIVE v1.29</title>
+<title>GuestyLIVE v1.30</title>
 <meta name="theme-color" content="#F3F6F6" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0C1312" media="(prefers-color-scheme: dark)">
 <meta name="mobile-web-app-capable" content="yes">
@@ -459,17 +459,23 @@ main.col{padding-block:6px 48px;display:grid;grid-template-columns:minmax(0,1fr)
 
 <script>
 /* ---------- Escala para tablet: la misma app, más grande (en celular queda en 1) ---------- */
-let UIZ = 1;
+let UIZ = 1, uiW = 0;
+/* Solo reescala si cambia el ANCHO (rotar / ventana). Al scrollear, Android esconde/muestra
+   la barra del navegador y dispara 'resize' con solo cambio de alto: antes eso quitaba y
+   ponía el zoom y la página brincaba hacia arriba. */
 function fitUI(){
-  const h = document.documentElement; h.style.zoom = '';
-  const w = window.innerWidth, ht = window.innerHeight;
+  const w = window.innerWidth;
+  if (w === uiW) return; uiW = w;
+  const h = document.documentElement, prev = UIZ; h.style.zoom = '';
+  const ht = window.innerHeight;
   UIZ = w < 700 ? 1 : Math.round(Math.min(1.45, Math.max(1, Math.min(w / 600, ht / 560))) * 100) / 100;
   if (UIZ > 1) h.style.zoom = UIZ;
+  return UIZ !== prev;
 }
-fitUI(); addEventListener('resize', () => { const z = UIZ; fitUI(); if (z !== UIZ && typeof fitWrap === 'function') fitWrap() });
+fitUI(); addEventListener('resize', () => { if (fitUI() && typeof fitWrap === 'function') fitWrap() });
 
 /* ============ CONFIGURACIÓN (edítala aquí) ============ */
-const APP_VERSION = '1.29';   // súbela en cada cambio
+const APP_VERSION = '1.30';   // súbela en cada cambio
 const CFG = {
   QPRE: { NQ:['No califica','stop'], NC:['No contactado','warn'], CO:['Contactado','acc'], Q:['Calificado','ok'], CT:['CT','own'] },
   QOUT: { NS:['No show','stop'], Q:['Calificó','ok'], QA:['Calificó A','ok'], QB:['Calificó B','ok'], CT:['CT','own'], CTG:['CTG','own'], NQ:['No calificó','stop'] },
