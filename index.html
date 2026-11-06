@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>GuestyLIVE v1.28</title>
+<title>GuestyLIVE v1.29</title>
 <meta name="theme-color" content="#F3F6F6" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0C1312" media="(prefers-color-scheme: dark)">
 <meta name="mobile-web-app-capable" content="yes">
@@ -458,8 +458,18 @@ main.col{padding-block:6px 48px;display:grid;grid-template-columns:minmax(0,1fr)
 <div id="toast" class="toast" hidden></div>
 
 <script>
+/* ---------- Escala para tablet: la misma app, más grande (en celular queda en 1) ---------- */
+let UIZ = 1;
+function fitUI(){
+  const h = document.documentElement; h.style.zoom = '';
+  const w = window.innerWidth, ht = window.innerHeight;
+  UIZ = w < 700 ? 1 : Math.round(Math.min(1.45, Math.max(1, Math.min(w / 600, ht / 560))) * 100) / 100;
+  if (UIZ > 1) h.style.zoom = UIZ;
+}
+fitUI(); addEventListener('resize', () => { const z = UIZ; fitUI(); if (z !== UIZ && typeof fitWrap === 'function') fitWrap() });
+
 /* ============ CONFIGURACIÓN (edítala aquí) ============ */
-const APP_VERSION = '1.28';   // súbela en cada cambio
+const APP_VERSION = '1.29';   // súbela en cada cambio
 const CFG = {
   QPRE: { NQ:['No califica','stop'], NC:['No contactado','warn'], CO:['Contactado','acc'], Q:['Calificado','ok'], CT:['CT','own'] },
   QOUT: { NS:['No show','stop'], Q:['Calificó','ok'], QA:['Calificó A','ok'], QB:['Calificó B','ok'], CT:['CT','own'], CTG:['CTG','own'], NQ:['No calificó','stop'] },
@@ -1080,8 +1090,8 @@ window.addEventListener('popstate', () => closeSheet(true));
 (function swipe(){
   const sh = $('#sheet'), sc = $('#sheetScroll'); let y0 = null, dy = 0;
   sh.addEventListener('touchstart', e => { if (sc.scrollTop > 0 && !e.target.closest('#grab')) return; y0 = e.touches[0].clientY; dy = 0; sh.style.transition = 'none' }, {passive:true});
-  sh.addEventListener('touchmove', e => { if (y0 === null) return; dy = Math.max(0, e.touches[0].clientY - y0); sh.style.transform = `translateY(${dy}px)` }, {passive:true});
-  sh.addEventListener('touchend', () => { if (y0 === null) return; sh.style.transition = ''; if (dy > 90) closeSheet(false); else sh.style.transform = ''; y0 = null });
+  sh.addEventListener('touchmove', e => { if (y0 === null) return; dy = Math.max(0, e.touches[0].clientY - y0); sh.style.transform = `translateY(${dy / UIZ}px)` }, {passive:true});
+  sh.addEventListener('touchend', () => { if (y0 === null) return; sh.style.transition = ''; if (dy > 90 * UIZ) closeSheet(false); else sh.style.transform = ''; y0 = null });
 })();
 
 /* ---------- Eventos ---------- */
@@ -1763,7 +1773,7 @@ function paintLista(){
 function fitWrap(){
   const w = $('#zoomwrap'); if (!w || tab !== 'l') return;
   const top = w.getBoundingClientRect().top;
-  w.style.height = Math.max(280, window.innerHeight - top - 46) + 'px';
+  w.style.height = Math.max(280, (window.innerHeight - top) / UIZ - 46) + 'px';
 }
 function setZoom(z, mx, my, anchor){
   const w = $('#zoomwrap'); if (!w) return;
@@ -1780,17 +1790,17 @@ function bindZoom(w){
     const r = w.getBoundingClientRect();
     if (e.touches.length === 2){
       d0 = dist(e.touches); z0 = zoom;
-      const mx = (e.touches[0].clientX + e.touches[1].clientX) / 2 - r.left, my = (e.touches[0].clientY + e.touches[1].clientY) / 2 - r.top;
+      const mx = ((e.touches[0].clientX + e.touches[1].clientX) / 2 - r.left) / UIZ, my = ((e.touches[0].clientY + e.touches[1].clientY) / 2 - r.top) / UIZ;
       anchor = {mx, my, cx: (w.scrollLeft + mx) / zoom, cy: (w.scrollTop + my) / zoom};
     } else if (e.touches.length === 1){
       const now = Date.now();
-      if (now - lastTap < 280){ e.preventDefault(); setZoom(zoom > 1.4 ? 1 : 2.5, e.touches[0].clientX - r.left, e.touches[0].clientY - r.top); lastTap = 0 }
+      if (now - lastTap < 280){ e.preventDefault(); setZoom(zoom > 1.4 ? 1 : 2.5, (e.touches[0].clientX - r.left) / UIZ, (e.touches[0].clientY - r.top) / UIZ); lastTap = 0 }
       else lastTap = now;
     }
   }, {passive:false});
   w.addEventListener('touchmove', e => { if (e.touches.length === 2 && d0){ e.preventDefault(); setZoom(z0 * dist(e.touches) / d0, anchor.mx, anchor.my, anchor) } }, {passive:false});
   w.addEventListener('touchend', e => { if (e.touches.length < 2) d0 = 0 });
-  w.addEventListener('dblclick', e => { const r = w.getBoundingClientRect(); setZoom(zoom > 1.4 ? 1 : 2.5, e.clientX - r.left, e.clientY - r.top) });
+  w.addEventListener('dblclick', e => { const r = w.getBoundingClientRect(); setZoom(zoom > 1.4 ? 1 : 2.5, (e.clientX - r.left) / UIZ, (e.clientY - r.top) / UIZ) });
 }
 function setTab(t){
   tab = t;
