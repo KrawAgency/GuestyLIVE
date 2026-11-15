@@ -1,10 +1,10 @@
 <!doctype html>
-<!-- GuestyLIVE · v1.33 -->
+<!-- GuestyLIVE · v1.34 -->
 <html lang="es-MX">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>GuestyLIVE v1.33</title>
+<title>GuestyLIVE v1.34</title>
 <meta name="theme-color" content="#F3F6F6" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0C1312" media="(prefers-color-scheme: dark)">
 <meta name="mobile-web-app-capable" content="yes">
@@ -138,7 +138,7 @@ main.col{padding-block:6px 48px;display:grid;grid-template-columns:minmax(0,1fr)
 
 .meta{font-size:13px;color:var(--muted);font-weight:500;display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:20px}
 .meta button{border:0;background:none;color:var(--accent);font-weight:700;font-size:13px;padding:4px 0}
-.metaact{display:flex;align-items:center;gap:12px;flex:none}
+.metaact{display:flex;align-items:center;gap:12px;flex:none;flex-wrap:wrap;justify-content:flex-end}
 .sortseg{display:inline-flex;background:var(--sunk);border-radius:999px;padding:2px}
 .meta .sortseg button{padding:5px 11px;border-radius:999px;color:var(--muted)}
 .meta .sortseg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
@@ -546,7 +546,7 @@ const store = {
   del(k){ try{ localStorage.removeItem(k) }catch(e){} },
 };
 
-let DATA = null, DEMO = false, filter = null, noUVC = false, arrDate = null, sheetId = null, lastAuto = '';
+let DATA = null, DEMO = false, filter = null, noUVC = false, preQ = {NC:true, CO:false}, arrDate = null, sheetId = null, lastAuto = '';
 const SORT_KEY = 'guestylive_orden_lista';
 let listSort = store.get(SORT_KEY) === 'az' ? 'az' : 'room';   // orden de las listas filtradas: 'room' | 'az'
 const byRoom = (a,b) => a.room.localeCompare(b.room,'es',{numeric:true});
@@ -890,7 +890,8 @@ const FILTERS = {
   dep: ['Salen hoy', r => r.out === dayKey()],
   memb:['Socios UVC', r => !!r.memb],
   nc:  ['No contactados', r => qBase(r) === 'NC'],
-  pre: ['Preferred NC · para cartita', r => isPref(r) && eff(r,'qpre') === 'NC'],
+  // NC y CO se eligen con los botones de la lista; CO solo si aún no está invitado
+  pre: ['Preferred · para cartita', r => { if (!isPref(r)) return false; const q = eff(r,'qpre'); return (preQ.NC && q === 'NC') || (preQ.CO && q === 'CO' && !eff(r,'INV')) }],
 };
 function tilesHTML(){
   return Object.entries(FILTERS).map(([k,[l,fn]]) =>
@@ -935,7 +936,7 @@ function render(){
   if (list === null){ ul.innerHTML = ''; meta.innerHTML = ''; return }
   const LIM = (!nq && filter) ? 500 : 40, shown = list.slice(0, LIM);
   meta.innerHTML = list.length
-    ? `<span>${label ? esc(label)+' · ' : ''}${list.length} resultado${list.length===1?'':'s'}${list.length>LIM?' · mostrando '+LIM:''}</span>${label ? `<span class="metaact"><span class="sortseg" role="group" aria-label="Ordenar"><button type="button" data-sort="room" aria-pressed="${listSort==='room'}">Hab.</button><button type="button" data-sort="az" aria-pressed="${listSort==='az'}">A–Z</button></span>${filter === 'pre' && !nq ? `<button type="button" class="nouvc" data-nouvc aria-pressed="${noUVC}">${noUVC ? '✓ Sin UVC' : 'Quitar UVC'}</button>` : ''}<button type="button" data-unfilter>Quitar filtro</button></span>` : ''}`
+    ? `<span>${label ? esc(label)+' · ' : ''}${list.length} resultado${list.length===1?'':'s'}${list.length>LIM?' · mostrando '+LIM:''}</span>${label ? `<span class="metaact"><span class="sortseg" role="group" aria-label="Ordenar"><button type="button" data-sort="room" aria-pressed="${listSort==='room'}">Hab.</button><button type="button" data-sort="az" aria-pressed="${listSort==='az'}">A–Z</button></span>${filter === 'pre' && !nq ? `<span class="sortseg" role="group" aria-label="Estatus"><button type="button" data-preq="NC" aria-pressed="${preQ.NC}">NC</button><button type="button" data-preq="CO" aria-pressed="${preQ.CO}">CO</button></span><button type="button" class="nouvc" data-nouvc aria-pressed="${noUVC}">${noUVC ? '✓ Sin UVC' : 'Quitar UVC'}</button>` : ''}<button type="button" data-unfilter>Quitar filtro</button></span>` : ''}`
     : '';
   ul.innerHTML = shown.length ? shown.map(r => cardHTML(r, q)).join('')
     : `<li class="empty"><b>Nadie con “${esc(q.trim())}”</b>Revisa el número o prueba con otro apellido.</li>`;
@@ -1126,6 +1127,7 @@ $('#results').addEventListener('click', e => { const c = e.target.closest('.card
 $('#meta').addEventListener('click', e => {
   if (e.target.closest('[data-unfilter]')){ filter = null; arrDate = null; noUVC = false; render(); return }
   if (e.target.closest('[data-nouvc]')){ noUVC = !noUVC; render(); return }
+  const pq = e.target.closest('[data-preq]'); if (pq){ const k = pq.dataset.preq, o = k === 'NC' ? 'CO' : 'NC'; if (preQ[k] && !preQ[o]) return; preQ[k] = !preQ[k]; render(); return }
   const s = e.target.closest('[data-sort]'); if (s && s.dataset.sort !== listSort){ listSort = s.dataset.sort; store.set(SORT_KEY, listSort); render() }
 });
 $('#dates').addEventListener('click', e => { const b = e.target.closest('.dchip'); if (!b) return; arrDate = b.dataset.d || null; render() });
