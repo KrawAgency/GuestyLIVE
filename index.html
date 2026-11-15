@@ -1,10 +1,10 @@
 <!doctype html>
-<!-- GuestyLIVE · v1.35 -->
+<!-- GuestyLIVE · v1.36 -->
 <html lang="es-MX">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>GuestyLIVE v1.35</title>
+<title>GuestyLIVE v1.36</title>
 <meta name="theme-color" content="#F3F6F6" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0C1312" media="(prefers-color-scheme: dark)">
 <meta name="mobile-web-app-capable" content="yes">
@@ -136,9 +136,10 @@ main.col{padding-block:6px 48px;display:grid;grid-template-columns:minmax(0,1fr)
 .dchip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
 .dchip[aria-pressed="true"] small{color:var(--accent)}
 
-.meta{font-size:13px;color:var(--muted);font-weight:500;display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:20px}
+.meta{font-size:13px;color:var(--muted);font-weight:500;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;min-height:20px}
 .meta button{border:0;background:none;color:var(--accent);font-weight:700;font-size:13px;padding:4px 0}
-.metaact{display:flex;align-items:center;gap:12px;flex:none;flex-wrap:wrap;justify-content:flex-end}
+.metaact{display:flex;align-items:center;gap:12px;flex:none}
+.preopts{flex-basis:100%;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .sortseg{display:inline-flex;background:var(--sunk);border-radius:999px;padding:2px}
 .meta .sortseg button{padding:5px 11px;border-radius:999px;color:var(--muted)}
 .meta .sortseg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
@@ -480,7 +481,7 @@ function fitUI(){
 fitUI(); addEventListener('resize', () => { if (fitUI() && typeof fitWrap === 'function') fitWrap() });
 
 /* ============ CONFIGURACIÓN (edítala aquí) ============ */
-const APP_VERSION = '1.31';   // súbela en cada cambio
+const APP_VERSION = '1.36';   // súbela en cada cambio
 const CFG = {
   QPRE: { NQ:['No califica','stop'], NC:['No contactado','warn'], CO:['Contactado','acc'], Q:['Calificado','ok'], CT:['CT','own'] },
   QOUT: { NS:['No show','stop'], Q:['Calificó','ok'], QA:['Calificó A','ok'], QB:['Calificó B','ok'], CT:['CT','own'], CTG:['CTG','own'], NQ:['No calificó','stop'] },
@@ -546,7 +547,7 @@ const store = {
   del(k){ try{ localStorage.removeItem(k) }catch(e){} },
 };
 
-let DATA = null, DEMO = false, filter = null, noUVC = false, preQ = {NC:true, CO:false}, arrDate = null, sheetId = null, lastAuto = '';
+let DATA = null, DEMO = false, filter = null, noUVC = false, noDep = false, preQ = {NC:true, CO:false}, arrDate = null, sheetId = null, lastAuto = '';
 const SORT_KEY = 'guestylive_orden_lista';
 let listSort = store.get(SORT_KEY) === 'az' ? 'az' : 'room';   // orden de las listas filtradas: 'room' | 'az'
 const byRoom = (a,b) => a.room.localeCompare(b.room,'es',{numeric:true});
@@ -862,7 +863,8 @@ function highlight(name, q){
 function cardHTML(r, q){
   const s = stay(r), tg = tagsOf(r), qcode = eff(r,'qpre'), qp = CFG.QPRE[qcode], chips = [];
   if (isUVC(r)) chips.push(UVC_CHIP);
-  if (s.label) chips.push(`<span class="chip ${s.kind}">${esc(s.label)}</span>`);
+  if (filter === 'pre' && s.label && s.left !== undefined && s.left >= 0 && s.left <= 1) chips.unshift(`<span class="chip hot">⚠ ${esc(s.label)}</span>`);
+  else if (s.label) chips.push(`<span class="chip ${s.kind}">${esc(s.label)}</span>`);
   if (qcode) chips.push(`<span class="chip ${qp ? qp[1] : ''}">${esc(qcode)}</span>`);
   if (isMICE(r)) chips.push(MICE_CHIP);
   if (isGRP(r)) chips.push(grpChip(r));
@@ -917,6 +919,7 @@ function render(){
     label = FILTERS[filter][0];
     list = rows().filter(FILTERS[filter][1]).sort(listSort === 'az' ? byName : byRoom);
     if (filter === 'pre' && noUVC){ list = list.filter(r => !isUVC(r)); label += ' · sin UVC' }
+    if (filter === 'pre' && noDep){ const tm = addDays(dayKey(), 1); list = list.filter(r => !r.out || r.out > tm); label += ' · sin salidas' }
     if (filter !== 'arr'){
       const cnt = new Map(); for (const r of list) if (r.in) cnt.set(r.in, (cnt.get(r.in)||0) + 1);
       const days = [...cnt.keys()].sort().reverse();   // más reciente primero
@@ -936,7 +939,7 @@ function render(){
   if (list === null){ ul.innerHTML = ''; meta.innerHTML = ''; return }
   const LIM = (!nq && filter) ? 500 : 40, shown = list.slice(0, LIM);
   meta.innerHTML = list.length
-    ? `<span>${label ? esc(label)+' · ' : ''}${list.length} resultado${list.length===1?'':'s'}${list.length>LIM?' · mostrando '+LIM:''}</span>${label ? `<span class="metaact"><span class="sortseg" role="group" aria-label="Ordenar"><button type="button" data-sort="room" aria-pressed="${listSort==='room'}">Hab.</button><button type="button" data-sort="az" aria-pressed="${listSort==='az'}">A–Z</button></span>${filter === 'pre' && !nq ? `<span class="sortseg" role="group" aria-label="Estatus"><button type="button" data-preq="NC" aria-pressed="${preQ.NC}">NC</button><button type="button" data-preq="CO" aria-pressed="${preQ.CO}">CO</button></span><button type="button" class="nouvc" data-nouvc aria-pressed="${noUVC}">${noUVC ? '✓ Sin UVC' : 'Quitar UVC'}</button>` : ''}<button type="button" data-unfilter>Quitar filtro</button></span>` : ''}`
+    ? `<span>${label ? esc(label)+' · ' : ''}${list.length} resultado${list.length===1?'':'s'}${list.length>LIM?' · mostrando '+LIM:''}</span>${label ? `<span class="metaact"><span class="sortseg" role="group" aria-label="Ordenar"><button type="button" data-sort="room" aria-pressed="${listSort==='room'}">Hab.</button><button type="button" data-sort="az" aria-pressed="${listSort==='az'}">A–Z</button></span><button type="button" data-unfilter>Quitar filtro</button></span>${filter === 'pre' && !nq ? `<div class="preopts"><span class="sortseg" role="group" aria-label="Estatus"><button type="button" data-preq="NC" aria-pressed="${preQ.NC}">NC</button><button type="button" data-preq="CO" aria-pressed="${preQ.CO}">CO</button></span><button type="button" class="nouvc" data-nouvc aria-pressed="${noUVC}">${noUVC ? '✓ Sin UVC' : 'Quitar UVC'}</button><button type="button" class="nouvc" data-nodep aria-pressed="${noDep}">${noDep ? '✓ Sin salen mañana' : 'Quitar salen mañana'}</button></div>` : ''}` : ''}`
     : '';
   ul.innerHTML = shown.length ? shown.map(r => cardHTML(r, q)).join('')
     : `<li class="empty"><b>Nadie con “${esc(q.trim())}”</b>Revisa el número o prueba con otro apellido.</li>`;
@@ -1125,13 +1128,14 @@ $('#q').addEventListener('keydown', e => {
 $('#clear').addEventListener('click', () => { setQ(''); lastAuto = ''; render(); $('#q').focus() });
 $('#results').addEventListener('click', e => { const c = e.target.closest('.card'); if (c) openSheet(c.dataset.id) });
 $('#meta').addEventListener('click', e => {
-  if (e.target.closest('[data-unfilter]')){ filter = null; arrDate = null; noUVC = false; render(); return }
+  if (e.target.closest('[data-unfilter]')){ filter = null; arrDate = null; noUVC = false; noDep = false; render(); return }
   if (e.target.closest('[data-nouvc]')){ noUVC = !noUVC; render(); return }
+  if (e.target.closest('[data-nodep]')){ noDep = !noDep; render(); return }
   const pq = e.target.closest('[data-preq]'); if (pq){ const k = pq.dataset.preq, o = k === 'NC' ? 'CO' : 'NC'; if (preQ[k] && !preQ[o]) return; preQ[k] = !preQ[k]; render(); return }
   const s = e.target.closest('[data-sort]'); if (s && s.dataset.sort !== listSort){ listSort = s.dataset.sort; store.set(SORT_KEY, listSort); render() }
 });
 $('#dates').addEventListener('click', e => { const b = e.target.closest('.dchip'); if (!b) return; arrDate = b.dataset.d || null; render() });
-$('#tiles').addEventListener('click', e => { const b = e.target.closest('.tile'); if (!b) return; filter = filter === b.dataset.f ? null : b.dataset.f; arrDate = null; noUVC = false; render() });
+$('#tiles').addEventListener('click', e => { const b = e.target.closest('.tile'); if (!b) return; filter = filter === b.dataset.f ? null : b.dataset.f; arrDate = null; noUVC = false; noDep = false; render() });
 $('#welcome').addEventListener('click', e => { const b = e.target.closest('[data-try]'); if (b){ setQ(b.dataset.try); lastAuto = ''; render() } });
 let clearArm = 0;
 $('#sheetBody').addEventListener('click', async e => {
