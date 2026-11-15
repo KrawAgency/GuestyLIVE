@@ -1,10 +1,10 @@
 <!doctype html>
-<!-- GuestyLIVE · v1.31 -->
+<!-- GuestyLIVE · v1.32 -->
 <html lang="es-MX">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>GuestyLIVE v1.31</title>
+<title>GuestyLIVE v1.32</title>
 <meta name="theme-color" content="#F3F6F6" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0C1312" media="(prefers-color-scheme: dark)">
 <meta name="mobile-web-app-capable" content="yes">
@@ -122,7 +122,10 @@ main.col{padding-block:6px 48px;display:grid;grid-template-columns:minmax(0,1fr)
 .t-dep .ti{background:var(--warn-soft);color:var(--warn)}
 .t-memb .ti{background:var(--own-soft);color:var(--own)}
 .t-nc .ti{background:var(--ok-soft);color:var(--ok)}
-.t-all{grid-column:1/-1}
+.t-pre .ti{background:var(--own-soft);color:var(--own)}
+.t-all,.t-pre{grid-column:1/-1}
+.meta button.nouvc{padding:5px 11px;border-radius:999px;background:var(--sunk);color:var(--muted)}
+.meta button.nouvc[aria-pressed="true"]{background:var(--own);color:#fff}
 .t-all .ti{background:var(--sunk);color:var(--ink)}
 .dates{display:grid;gap:8px}
 .dates .lbl{font-size:12px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
@@ -542,7 +545,7 @@ const store = {
   del(k){ try{ localStorage.removeItem(k) }catch(e){} },
 };
 
-let DATA = null, DEMO = false, filter = null, arrDate = null, sheetId = null, lastAuto = '';
+let DATA = null, DEMO = false, filter = null, noUVC = false, arrDate = null, sheetId = null, lastAuto = '';
 const SORT_KEY = 'guestylive_orden_lista';
 let listSort = store.get(SORT_KEY) === 'az' ? 'az' : 'room';   // orden de las listas filtradas: 'room' | 'az'
 const byRoom = (a,b) => a.room.localeCompare(b.room,'es',{numeric:true});
@@ -648,6 +651,7 @@ const IC = {
   dep:'<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="7" width="16" height="12" rx="2.5" stroke="currentColor" stroke-width="2"/><path d="M9 7V5.5A1.5 1.5 0 0110.5 4h3A1.5 1.5 0 0115 5.5V7M9 11v4M15 11v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
   memb:'<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9L12 3.5z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>',
   nc:'<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="M4.5 20a7.5 7.5 0 0115 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+  pre:'<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3.5" y="5.5" width="17" height="13" rx="2.5" stroke="currentColor" stroke-width="2"/><path d="M4.5 7l7.5 6 7.5-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   all:'<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="9" cy="8" r="3.2" stroke="currentColor" stroke-width="2"/><path d="M3.5 19a5.5 5.5 0 0111 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="16.5" cy="9" r="2.6" stroke="currentColor" stroke-width="2"/><path d="M16 14.2a4.6 4.6 0 015.3 4.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
   go:'<svg class="go" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   yes:'<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
@@ -875,12 +879,17 @@ function cardHTML(r, q){
   </button></li>`;
 }
 
+// Preferred: habitaciones XX00–XX12 y XX48–XX51 de los edificios 1000 y 2000 (p. ej. 1112, 2249).
+// En family suites cuenta si alguno de sus cuartos físicos es preferred.
+const isPrefRoom = n => { const m = /^([12])\d(\d\d)$/.exec(String(n || '').trim()); if (!m) return false; const x = +m[2]; return x <= 12 || (x >= 48 && x <= 51) };
+const isPref = r => isPrefRoom(r.room) || physOf(r).some(isPrefRoom);
 const FILTERS = {
   all: ['Todos los huéspedes', r => true],
   arr: ['Llegan hoy', r => r.in === dayKey()],
   dep: ['Salen hoy', r => r.out === dayKey()],
   memb:['Socios UVC', r => !!r.memb],
   nc:  ['No contactados', r => qBase(r) === 'NC'],
+  pre: ['Preferred NC · para cartita', r => isPref(r) && eff(r,'qpre') === 'NC'],
 };
 function tilesHTML(){
   return Object.entries(FILTERS).map(([k,[l,fn]]) =>
@@ -905,6 +914,7 @@ function render(){
   if (list === null && filter){
     label = FILTERS[filter][0];
     list = rows().filter(FILTERS[filter][1]).sort(listSort === 'az' ? byName : byRoom);
+    if (filter === 'pre' && noUVC){ list = list.filter(r => !isUVC(r)); label += ' · sin UVC' }
     if (filter !== 'arr'){
       const cnt = new Map(); for (const r of list) if (r.in) cnt.set(r.in, (cnt.get(r.in)||0) + 1);
       const days = [...cnt.keys()].sort().reverse();   // más reciente primero
@@ -924,7 +934,7 @@ function render(){
   if (list === null){ ul.innerHTML = ''; meta.innerHTML = ''; return }
   const LIM = (!nq && filter) ? 500 : 40, shown = list.slice(0, LIM);
   meta.innerHTML = list.length
-    ? `<span>${label ? esc(label)+' · ' : ''}${list.length} resultado${list.length===1?'':'s'}${list.length>LIM?' · mostrando '+LIM:''}</span>${label ? `<span class="metaact"><span class="sortseg" role="group" aria-label="Ordenar"><button type="button" data-sort="room" aria-pressed="${listSort==='room'}">Hab.</button><button type="button" data-sort="az" aria-pressed="${listSort==='az'}">A–Z</button></span><button type="button" data-unfilter>Quitar filtro</button></span>` : ''}`
+    ? `<span>${label ? esc(label)+' · ' : ''}${list.length} resultado${list.length===1?'':'s'}${list.length>LIM?' · mostrando '+LIM:''}</span>${label ? `<span class="metaact"><span class="sortseg" role="group" aria-label="Ordenar"><button type="button" data-sort="room" aria-pressed="${listSort==='room'}">Hab.</button><button type="button" data-sort="az" aria-pressed="${listSort==='az'}">A–Z</button></span>${filter === 'pre' && !nq ? `<button type="button" class="nouvc" data-nouvc aria-pressed="${noUVC}">${noUVC ? '✓ Sin UVC' : 'Quitar UVC'}</button>` : ''}<button type="button" data-unfilter>Quitar filtro</button></span>` : ''}`
     : '';
   ul.innerHTML = shown.length ? shown.map(r => cardHTML(r, q)).join('')
     : `<li class="empty"><b>Nadie con “${esc(q.trim())}”</b>Revisa el número o prueba con otro apellido.</li>`;
@@ -1113,11 +1123,12 @@ $('#q').addEventListener('keydown', e => {
 $('#clear').addEventListener('click', () => { setQ(''); lastAuto = ''; render(); $('#q').focus() });
 $('#results').addEventListener('click', e => { const c = e.target.closest('.card'); if (c) openSheet(c.dataset.id) });
 $('#meta').addEventListener('click', e => {
-  if (e.target.closest('[data-unfilter]')){ filter = null; arrDate = null; render(); return }
+  if (e.target.closest('[data-unfilter]')){ filter = null; arrDate = null; noUVC = false; render(); return }
+  if (e.target.closest('[data-nouvc]')){ noUVC = !noUVC; render(); return }
   const s = e.target.closest('[data-sort]'); if (s && s.dataset.sort !== listSort){ listSort = s.dataset.sort; store.set(SORT_KEY, listSort); render() }
 });
 $('#dates').addEventListener('click', e => { const b = e.target.closest('.dchip'); if (!b) return; arrDate = b.dataset.d || null; render() });
-$('#tiles').addEventListener('click', e => { const b = e.target.closest('.tile'); if (!b) return; filter = filter === b.dataset.f ? null : b.dataset.f; arrDate = null; render() });
+$('#tiles').addEventListener('click', e => { const b = e.target.closest('.tile'); if (!b) return; filter = filter === b.dataset.f ? null : b.dataset.f; arrDate = null; noUVC = false; render() });
 $('#welcome').addEventListener('click', e => { const b = e.target.closest('[data-try]'); if (b){ setQ(b.dataset.try); lastAuto = ''; render() } });
 let clearArm = 0;
 $('#sheetBody').addEventListener('click', async e => {
