@@ -1,10 +1,10 @@
 <!doctype html>
-<!-- GuestyLIVE · v1.34 -->
+<!-- GuestyLIVE · v1.35 -->
 <html lang="es-MX">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>GuestyLIVE v1.34</title>
+<title>GuestyLIVE v1.35</title>
 <meta name="theme-color" content="#F3F6F6" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0C1312" media="(prefers-color-scheme: dark)">
 <meta name="mobile-web-app-capable" content="yes">
@@ -1578,6 +1578,23 @@ function actReconcile(list){
   }
   return n;
 }
+// Del reporte: los que tienen "OPEN Fer" en comentarios son tuyos aunque no los hayas registrado en la app.
+// Se agregan como abordados (día = su llegada, porque el reporte no dice cuándo los abordaste) y su INV cuenta como tuyo.
+const myOpen = r => { const m = norm(r.cmt).match(/\bOPEN\s+([A-Z]+)/); return !!m && m[1] === norm(CFG.ME) };
+function actImportMine(list){
+  let add = 0, claim = 0;
+  for (const r of list){
+    if (!myOpen(r) || !r.in) continue;
+    const h = guestKey(r); let x = ACT.recs[h];
+    if (!x){
+      x = ACT.recs[h] = {h, day:r.in, at:isoDate(r.in).getTime(), orig:[], steps:{}, out:{}, auto:true, anon:false, rep:true, room:r.room, name:r.name, gid:r.id};
+      if (r.qpre === 'NQ') x.steps.NQ = {at:x.at, why:suggestWhy(r)};
+      add++;
+    }
+    if (r.INV && !x.steps.INV && x.claim !== true && x.claim !== false){ x.claim = true; claim++ }
+  }
+  return {add, claim};
+}
 async function reportLoad(fileList){
   if (typeof XLSX === 'undefined'){ toast('No se pudo cargar el lector de Excel. Revisa tu conexión.'); return }
   let all = [];
@@ -1587,8 +1604,9 @@ async function reportLoad(fileList){
       all = all.concat(parseSheet(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header:1, defval:'', raw:true})));
     }
   }catch(e){ toast(e.message || 'No pude leer el reporte.'); return }
-  const n = actReconcile(all); actSave(); paintTurno();
-  toast(n ? `Crucé ${all.length} filas: ${n} de tus abordados se actualizaron` : `Revisé ${all.length} filas: nada nuevo de tus abordados`);
+  const mine = all.filter(myOpen).length, im = actImportMine(all), n = actReconcile(all); actSave(); paintTurno();
+  if (!mine && !n) toast(`Revisé ${all.length} filas: ninguna con "OPEN ${CFG.ME}" ni de tus abordados`);
+  else toast(`${all.length} filas · ${mine} con OPEN ${CFG.ME} · ${im.add} abordados nuevos · ${im.claim} invitaciones tuyas · ${n} actualizados`);
 }
 
 /* Cálculos de un periodo (de/a: YYYY-MM-DD). Todo se cuenta por el día en que abordaste al huésped. */
