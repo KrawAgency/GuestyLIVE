@@ -1,10 +1,10 @@
 <!doctype html>
-<!-- GuestyLIVE · v1.36 -->
+<!-- GuestyLIVE · v1.37 -->
 <html lang="es-MX">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>GuestyLIVE v1.36</title>
+<title>GuestyLIVE v1.37</title>
 <meta name="theme-color" content="#F3F6F6" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0C1312" media="(prefers-color-scheme: dark)">
 <meta name="mobile-web-app-capable" content="yes">
@@ -481,7 +481,7 @@ function fitUI(){
 fitUI(); addEventListener('resize', () => { if (fitUI() && typeof fitWrap === 'function') fitWrap() });
 
 /* ============ CONFIGURACIÓN (edítala aquí) ============ */
-const APP_VERSION = '1.36';   // súbela en cada cambio
+const APP_VERSION = '1.37';   // súbela en cada cambio
 const CFG = {
   QPRE: { NQ:['No califica','stop'], NC:['No contactado','warn'], CO:['Contactado','acc'], Q:['Calificado','ok'], CT:['CT','own'] },
   QOUT: { NS:['No show','stop'], Q:['Calificó','ok'], QA:['Calificó A','ok'], QB:['Calificó B','ok'], CT:['CT','own'], CTG:['CTG','own'], NQ:['No calificó','stop'] },
@@ -893,7 +893,8 @@ const FILTERS = {
   memb:['Socios UVC', r => !!r.memb],
   nc:  ['No contactados', r => qBase(r) === 'NC'],
   // NC y CO se eligen con los botones de la lista; CO solo si aún no está invitado
-  pre: ['Preferred · para cartita', r => { if (!isPref(r)) return false; const q = eff(r,'qpre'); return (preQ.NC && q === 'NC') || (preQ.CO && q === 'CO' && !eff(r,'INV')) }],
+  pre: ['Preferred · para cartita', r => { if (!isPref(r) || (r.out && r.out <= dayKey())) return false;   // los que salen hoy nunca: la cartita ya no llega
+    const q = eff(r,'qpre'); return (preQ.NC && q === 'NC') || (preQ.CO && q === 'CO' && !eff(r,'INV')) }],
 };
 function tilesHTML(){
   return Object.entries(FILTERS).map(([k,[l,fn]]) =>
@@ -919,7 +920,7 @@ function render(){
     label = FILTERS[filter][0];
     list = rows().filter(FILTERS[filter][1]).sort(listSort === 'az' ? byName : byRoom);
     if (filter === 'pre' && noUVC){ list = list.filter(r => !isUVC(r)); label += ' · sin UVC' }
-    if (filter === 'pre' && noDep){ const tm = addDays(dayKey(), 1); list = list.filter(r => !r.out || r.out > tm); label += ' · sin salidas' }
+    if (filter === 'pre' && noDep){ const tm = addDays(dayKey(), 1); list = list.filter(r => !r.out || r.out > tm); label += ' · sin salen mañana' }
     if (filter !== 'arr'){
       const cnt = new Map(); for (const r of list) if (r.in) cnt.set(r.in, (cnt.get(r.in)||0) + 1);
       const days = [...cnt.keys()].sort().reverse();   // más reciente primero
