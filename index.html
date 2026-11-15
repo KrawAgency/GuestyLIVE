@@ -1,10 +1,10 @@
 <!doctype html>
-<!-- GuestyLIVE · v1.32 -->
+<!-- GuestyLIVE · v1.33 -->
 <html lang="es-MX">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>GuestyLIVE v1.32</title>
+<title>GuestyLIVE v1.33</title>
 <meta name="theme-color" content="#F3F6F6" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0C1312" media="(prefers-color-scheme: dark)">
 <meta name="mobile-web-app-capable" content="yes">
@@ -158,6 +158,7 @@ main.col{padding-block:6px 48px;display:grid;grid-template-columns:minmax(0,1fr)
 .name{font-weight:700;font-size:16.5px;line-height:1.25;overflow-wrap:anywhere}
 .name mark{background:var(--accent-soft);color:var(--ink);border-radius:4px;padding:0 1px}
 .sub{display:flex;flex-wrap:wrap;gap:5px}
+.who .ag{font-size:12.5px;font-weight:600;color:var(--muted);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .card .go{width:22px;height:22px;color:var(--muted)}
 
 .chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;line-height:1;padding:5px 8px;border-radius:999px;background:var(--sunk);color:var(--muted);white-space:nowrap}
@@ -874,7 +875,7 @@ function cardHTML(r, q){
   { const p = callsFor(r.id); if (p.length){ const l = p[p.length-1]; chips.unshift(`<span class="chip ${callKind(l)}">☎ ${esc(callLabel(l))}</span>`) } }
   return `<li><button class="card" type="button" data-id="${esc(r.id)}">
     ${tagHTML(r.room)}
-    <span class="who"><span class="name">${highlight(r.name, q)}</span><span class="sub">${chips.join('')}</span></span>
+    <span class="who"><span class="name">${highlight(r.name, q)}</span>${filter === 'pre' && !norm(q) ? `<span class="ag">${esc(title(r.agency) || 'Sin agencia')}</span>` : ''}<span class="sub">${chips.join('')}</span></span>
     ${IC.go}
   </button></li>`;
 }
